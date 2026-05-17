@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Evaluasi Layanan BK</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: { 
+                        darkbg: '#0f172a',
+                        glassbg: 'rgba(30, 41, 59, 0.7)',
+                        gold: '#fbbf24',
+                        goldhover: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background: radial-gradient(circle at 50% 0%, #1e293b, #020617);
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+            color: #f8fafc;
+        }
+
+        .glass-panel {
+            background: var(--glassbg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .glass-panel:hover { 
+            border-color: rgba(251, 191, 36, 0.3);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7); 
+        }
+
+        .luxury-btn {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: #0f172a; 
+            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
+            transition: all 0.3s;
+        }
+        .luxury-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 25px -5px rgba(245, 158, 11, 0.6); }
+
+        .outline-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #cbd5e1;
+            transition: all 0.3s;
+        }
+        .outline-btn:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: rgba(255,255,255,0.5); }
+
+        .dark-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            transition: all 0.3s;
+        }
+        .dark-input:focus { border-color: #fbbf24; outline: none; box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1); }
+        .dark-input::placeholder { color: #64748b; }
+        select.dark-input option { background-color: #1e293b; color: #f8fafc; }
+
+        .page-section { display: none; opacity: 0; }
+        .page-section.active { display: block; opacity: 1; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .rating-wrapper { display: flex; gap: 0.5rem; }
+        .rating-option { flex: 1; text-align: center; position: relative; }
+        .rating-option input { position: absolute; opacity: 0; cursor: pointer; }
+        .rating-option span {
+            display: block; padding: 12px 0; background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1); font-weight: bold; color: #94a3b8; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .rating-option input:checked ~ span {
+            background: linear-gradient(135deg, #fbbf24, #d97706); 
+            border-color: transparent; color: #0f172a;
+            box-shadow: 0 8px 15px rgba(245, 158, 11, 0.3);
+            transform: scale(1.08);
+        }
+        
+        #loader {
+            display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(10px); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .glow-text { text-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+
+        /* Custom Scrollbar for iframe/modals */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p class="mt-4 font-bold text-gold animate-pulse tracking-widest uppercase text-sm" id="loader-text">Menyiapkan Sistem...</p>
+    </div>
+
+    <div class="max-w-5xl mx-auto text-center pt-4 md:pt-8 mb-8" id="globalHeader">
+        <img id="logoSekolah" src="https://drive.google.com/thumbnail?id=1Z6g-sCdw-k7W8dnw12NeagPkroLlmk-L" alt="Logo Sekolah" class="h-20 w-20 md:h-24 md:w-24 object-cover mx-auto mb-4 drop-shadow-2xl rounded-full border-2 border-slate-700 bg-slate-800 p-1">
+        
+        <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500 mb-1 tracking-tight glow-text">RUANG EVALUASI BK</h1>
+        
+        <p class="text-xs md:text-sm text-amber-400/80 font-medium tracking-wide italic mb-3">"Mengukur Proses, Memastikan Hasil, Mengoptimalkan Layanan BK"</p>
+        
+        <h2 id="namaSekolah" class="text-xs md:text-base text-slate-400 font-semibold tracking-[0.2em] uppercase">UPT SPF SMP NEGERI 16 MAKASSAR</h2>
+        
+        <div class="flex justify-center items-center gap-4 text-xs font-semibold tracking-wider text-slate-400 mb-4 bg-slate-800/30 w-fit mx-auto px-4 py-2 rounded-full border border-slate-700/50 mt-4">
+            <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span id="txtHari">Memuat Hari...</span>
+            </div>
+            <div class="w-px h-3 bg-slate-700"></div>
+            <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span id="txtJam" class="font-mono">00:00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <section id="section-landing" class="page-section active max-w-xl mx-auto">
+        <div class="glass-panel p-8 md:p-12 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-50"></div>
+            <div class="text-5xl mb-6">🔒</div>
+            <h3 class="text-2xl font-bold text-white mb-2">Portal Penilaian</h3>
+            <p class="text-slate-400 text-sm mb-8">Otentikasi kunci akses Anda untuk memulai sesi pengisian instrumen evaluasi secara aman.</p>
+            <input type="text" id="inputAuthCode" class="w-full text-center px-4 py-4 rounded-xl dark-input mb-6 font-extrabold uppercase tracking-[0.4em] text-xl" placeholder="KODE TOKEN">
+            <button onclick="prosesMasukEvaluasi()" class="w-full luxury-btn py-4 rounded-xl font-bold text-lg tracking-wide uppercase">Verifikasi Token</button>
+        </div>
+        <div class="mt-8 text-center">
+            <button onclick="switchSection('section-admin-login')" class="text-slate-500 hover:text-amber-400 text-sm font-semibold transition-colors flex items-center justify-center gap-2 mx-auto">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Akses Khusus Admin
+            </button>
+        </div>
+    </section>
+
+    <section id="section-admin-login" class="page-section max-w-md mx-auto">
+        <div class="glass-panel p-8 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
+            <div class="text-5xl mb-6">👨‍💻</div>
+            <h2 class="text-2xl font-bold text-white mb-2">Portal Pengelola</h2>
+            <p class="text-slate-400 text-sm mb-8">Masuk untuk melihat dasbor analisis evaluasi.</p>
+            <input type="text" id="adminUser" class="w-full text-center px-4 py-3 rounded-xl dark-input mb-4 font-bold" placeholder="Username">
+            <input type="password" id="adminPass" class="w-full text-center px-4 py-3 rounded-xl dark-input mb-8 font-bold" placeholder="Password">
+            <button onclick="prosesLoginAdmin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">Masuk Dashboard</button>
+            <button onclick="switchSection('section-landing')" class="mt-6 text-slate-400 hover:text-white text-sm transition-colors">⬅ Kembali ke Halaman Utama</button>
+        </div>
+    </section>
+
+    <section id="section-evaluasi" class="page-section max-w-4xl mx-auto pb-12">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 glass-panel p-4 md:p-6">
+            <h2 class="text-xl md:text-2xl font-extrabold text-white">Lembar Evaluasi</h2>
+            <button onclick="window.location.reload()" class="mt-4 md:mt-0 outline-btn px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2"><span>✕</span> Batalkan</button>
+        </div>
+
+        <div class="glass-panel p-6 md:p-8 mb-6 relative">
+            <h3 class="text-lg font-bold border-b border-slate-700 pb-3 mb-6 text-amber-400 flex items-center gap-2">1. Identitas Anda</h3>
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Peran Anda</label>
+                <select id="roleSelect" onchange="aturFormIdentitas()" class="w-full px-4 py-3.5 rounded-xl dark-input font-semibold cursor-pointer">
+                    <option value="">-- Silakan Pilih Peran --</option>
+                    <option value="Siswa">Siswa</option>
+                    <option value="Guru">Guru / Wali Kelas</option>
+                    <option value="Kepala Sekolah">Kepala Sekolah</option>
+                    <option value="Pengawas">Pengawas</option>
+                    <option value="Orang Tua">Orang Tua / Wali Siswa</option>
+                </select>
+            </div>
+            <div id="areaIdentitasDinamis" class="hidden transition-all duration-500 bg-slate-800/50 p-5 rounded-xl border border-slate-700"></div>
+        </div>
+
+        <div class="glass-panel p-6 md:p-8 mb-6 relative">
+            <h3 class="text-lg font-bold border-b border-slate-700 pb-3 mb-6 text-amber-400 flex items-center gap-2">2. Fokus Penilaian</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Pilih Layanan BK</label>
+                    <select id="layananSelect" class="w-full px-4 py-3.5 rounded-xl dark-input font-semibold"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Jenis Evaluasi</label>
+                    <select id="tipeSelect" class="w-full px-4 py-3.5 rounded-xl dark-input font-semibold">
+                        <option value="">-- Pilih Jenis --</option>
+                        <option value="Proses">Evaluasi Proses (Pelaksanaan)</option>
+                        <option value="Hasil">Evaluasi Hasil (Dampak)</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="fetchPernyataan()" class="w-full mt-8 outline-btn hover:bg-slate-700 py-4 rounded-xl font-bold tracking-widest uppercase transition-all">Tampilkan Instrumen ⬇</button>
+        </div>
+
+        <div id="wrapperKuesioner" class="glass-panel p-6 md:p-8 hidden relative">
+            <h3 class="text-lg font-bold border-b border-slate-700 pb-3 mb-6 text-amber-400 flex items-center gap-2">3. Instrumen Penilaian</h3>
+            
+            <div class="mb-6 bg-slate-800/60 p-4 md:p-5 rounded-xl border border-slate-700 shadow-inner">
+                <p class="text-sm text-amber-400 font-bold mb-1 uppercase tracking-wider">Petunjuk Pengisian:</p>
+                <p class="text-xs text-slate-400 mb-4">Silakan berikan penilaian dengan memilih salah satu angka (1-5) yang paling sesuai. Keterangan skala penilaian:</p>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center text-xs font-bold text-slate-300">
+                    <div class="bg-slate-900/80 py-3 px-2 rounded-lg border border-slate-700 hover:border-amber-500/50 transition-colors"><span class="text-amber-500 text-lg block mb-1">1</span>Sangat Kurang</div>
+                    <div class="bg-slate-900/80 py-3 px-2 rounded-lg border border-slate-700 hover:border-amber-500/50 transition-colors"><span class="text-amber-500 text-lg block mb-1">2</span>Kurang</div>
+                    <div class="bg-slate-900/80 py-3 px-2 rounded-lg border border-slate-700 hover:border-amber-500/50 transition-colors"><span class="text-amber-500 text-lg block mb-1">3</span>Cukup</div>
+                    <div class="bg-slate-900/80 py-3 px-2 rounded-lg border border-slate-700 hover:border-amber-500/50 transition-colors"><span class="text-amber-500 text-lg block mb-1">4</span>Baik</div>
+                    <div class="bg-slate-900/80 py-3 px-2 rounded-lg border border-slate-700 hover:border-amber-500/50 transition-colors"><span class="text-amber-500 text-lg block mb-1">5</span>Sangat Baik</div>
+                </div>
+            </div>
+            <div id="containerPertanyaan" class="space-y-6 mb-8"></div>
+            
+            <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                <label class="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Saran / Masukan (Opsional)</label>
+                <textarea id="inputSaran" rows="3" class="w-full px-4 py-4 rounded-xl dark-input resize-none" placeholder="Tuliskan saran Anda untuk layanan yang lebih baik..."></textarea>
+            </div>
+            <button onclick="submitDataEvaluasi()" class="w-full luxury-btn py-5 rounded-xl font-extrabold mt-8 text-lg tracking-widest uppercase flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]">Kirim Data Evaluasi</button>
+        </div>
+    </section>
+
+    <section id="section-dashboard" class="page-section max-w-7xl mx-auto py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 glass-panel p-6 border-b-4 border-b-blue-500">
+            <div>
+                <h2 class="text-3xl font-bold text-white mb-1">Dashboard Pengelola</h2>
+                <p class="text-slate-400 text-sm">Rekapitulasi Data dan Manajemen Laporan</p>
+            </div>
+            <button onclick="window.location.reload()" class="mt-4 md:mt-0 outline-btn hover:border-red-500 hover:text-red-400 px-6 py-2 rounded-xl font-bold text-sm">Keluar Admin</button>
+        </div>
+
+        <div class="glass-panel p-6 mb-8 border border-amber-500/30 bg-amber-900/10">
+            <h3 class="text-lg font-bold mb-4 text-amber-400 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Pusat Cetak Laporan PDF (Otomatis Analisis)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="openPrintSettings('layanan')" class="luxury-btn py-3 rounded-xl font-bold text-sm tracking-widest uppercase">📄 Cetak Per Layanan</button>
+                <button onclick="openPrintSettings('user')" class="luxury-btn py-3 rounded-xl font-bold text-sm tracking-widest uppercase">📄 Cetak Per Responden</button>
+                <button onclick="generatePDF('global')" class="bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] py-3 rounded-xl font-bold text-sm tracking-widest uppercase transition-all">📈 Cetak Rekap Global</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-panel p-6 text-center border-t-2 border-t-amber-400">
+                <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Evaluasi</div>
+                <div id="statTotal" class="text-4xl font-extrabold text-white">0</div>
+            </div>
+            <div class="glass-panel p-6 text-center border-t-2 border-t-blue-400">
+                <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Rata-rata Proses</div>
+                <div id="statAvgProses" class="text-4xl font-extrabold text-white">0.0</div>
+            </div>
+            <div class="glass-panel p-6 text-center border-t-2 border-t-emerald-400">
+                <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Rata-rata Hasil</div>
+                <div id="statAvgHasil" class="text-4xl font-extrabold text-white">0.0</div>
+            </div>
+            <div class="glass-panel p-6 text-center border-t-2 border-t-purple-400">
+                <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Rata-rata Gabungan</div>
+                <div id="statAvgGabungan" class="text-4xl font-extrabold text-white">0.0</div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 mb-8">
+            <div class="md:col-span-2 glass-panel p-6">
+                <h3 class="text-lg font-bold mb-4 text-white border-b border-slate-700 pb-2">Grafik Kinerja Layanan</h3>
+                <div class="relative w-full h-64 md:h-80"><canvas id="barChart"></canvas></div>
+            </div>
+            <div class="glass-panel p-6">
+                <h3 class="text-lg font-bold mb-4 text-white border-b border-slate-700 pb-2">Partisipasi Peran</h3>
+                <div class="relative w-full h-64 md:h-80 flex justify-center"><canvas id="pieChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-700 pb-4">
+                <h3 class="text-lg font-bold text-white shrink-0">Riwayat Pengisian</h3>
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto text-sm">
+                    <select id="filterLayanan" onchange="filterTable()" class="dark-input px-3 py-2 rounded-lg cursor-pointer"><option value="">Semua Layanan</option></select>
+                    <select id="filterRole" onchange="filterTable()" class="dark-input px-3 py-2 rounded-lg cursor-pointer">
+                        <option value="">Semua Peran</option><option value="Siswa">Siswa</option><option value="Guru">Guru</option><option value="Orang Tua">Orang Tua</option><option value="Kepala Sekolah">Kepala Sekolah</option><option value="Pengawas">Pengawas</option>
+                    </select>
+                    <input type="date" id="filterTglAwal" onchange="filterTable()" class="dark-input px-3 py-2 rounded-lg" title="Mulai Tanggal"><span class="text-slate-500 font-bold">-</span>
+                    <input type="date" id="filterTglAkhir" onchange="filterTable()" class="dark-input px-3 py-2 rounded-lg" title="Sampai Tanggal">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-amber-400 text-xs uppercase tracking-wider">
+                            <th class="p-3">No</th><th class="p-3">Waktu</th><th class="p-3">Nama Lengkap</th><th class="p-3">Peran</th><th class="p-3">Layanan BK</th><th class="p-3">Evaluasi</th><th class="p-3 text-center">Skor</th><th class="p-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm text-slate-300"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-between items-center mt-6">
+                <span id="pageInfo" class="text-xs text-slate-400">Halaman 1 dari 1</span>
+                <div class="flex gap-2">
+                    <button onclick="prevPage()" class="outline-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">⬅ Prev</button>
+                    <button onclick="nextPage()" class="outline-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Next ➡</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="printSetupModal" class="hidden fixed inset-0 z-[50] bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-4">
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md flex flex-col shadow-2xl p-6 relative">
+            <h3 class="text-xl font-bold text-amber-400 border-b border-slate-700 pb-3 mb-4" id="printModalTitle">Pengaturan Cetak</h3>
+            
+            <div id="printAreaLayanan" class="hidden space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Pilih Layanan</label>
+                    <select id="printSelectLayanan" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Tipe Evaluasi</label>
+                    <select id="printSelectTipe" class="w-full px-4 py-3 rounded-xl dark-input font-semibold">
+                        <option value="Proses">Evaluasi Proses</option>
+                        <option value="Hasil">Evaluasi Hasil</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="printAreaUser" class="hidden space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Pilih Nama Responden</label>
+                    <select id="printSelectUser" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4">
+                <button onclick="document.getElementById('printSetupModal').classList.add('hidden')" class="outline-btn px-5 py-2 rounded-xl text-sm font-bold">Batal</button>
+                <button id="btnEksekusiCetak" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-5 py-2 rounded-xl text-sm font-extrabold tracking-wide">Buat Dokumen PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdfModal" class="hidden fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-md flex justify-center items-center p-2 md:p-6">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-5xl h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-slate-900 border-b border-slate-700">
+                <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Pratinjau Laporan Resmi</h3>
+                <button onclick="document.getElementById('pdfModal').classList.add('hidden')" class="outline-btn px-4 py-1.5 rounded-lg text-sm text-red-400 border-red-500/50 hover:bg-red-500/10">Tutup</button>
+            </div>
+            <div class="flex-1 w-full bg-slate-500">
+                <iframe id="pdfPreviewIframe" class="w-full h-full border-none"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <footer class="max-w-5xl mx-auto text-center mt-12 pb-6 border-t border-slate-800/60 pt-6 text-slate-500 text-xs tracking-wide">
+        <p class="font-bold text-slate-400 mb-1">Ruang Evaluasi BK Project</p>
+        <p class="text-amber-400/80 font-semibold mb-2">Mappaguru Online - Muhammad Hasratul</p>
+        <p>Hak Cipta dilindungi Undang-undang &copy; <span id="tahunBerjalan">2026</span></p>
+    </footer>
+
+    <script>
+        // GANTI DENGAN URL WEB APP ANDA
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzSSzUuMgr9Xc5U5Haiy94_UcuT6B505ZDjCayKa6RUHGmj8Y4o7Tc0Lgybdc9XmHkLZA/exec"; 
+
+        let currentToken = "";
+        let currentPernyataan = [];
+        let chartInstanceBar = null;
+        let chartInstancePie = null;
+        let dataLayananLengkap = [];
+        let globalDataSiswa = [];
+        let globalDataGuru = [];
+
+        // Data Master & Pagination
+        let allAdminTableData = []; 
+        let adminTableData = [];    
+        let currentPage = 1;
+        const rowsPerPage = 10;
+
+        // Data Spesifik Cetak PDF
+        let globalSekolah = null; // Menyimpan data kop
+        let currentAdminName = "Guru BK";
+        let currentAdminNIP = "-";
+		let logoBase64 = null;     // Untuk Logo Kanan
+        let logoKiriBase64 = null; // Untuk Logo Kiri
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+        const showLoader = (msg = "Memproses...") => { document.getElementById('loader-text').innerText = msg; document.getElementById('loader').style.display = 'flex'; };
+        const hideLoader = () => document.getElementById('loader').style.display = 'none';
+        const switchSection = (id) => {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            setTimeout(() => { document.getElementById(id).classList.add('active'); document.getElementById('globalHeader').style.display = (id === 'section-dashboard') ? 'none' : 'block'; }, 50);
+        };
+
+        // KONVERSI GAMBAR KE BASE64 UNTUK JSPDF
+        async function getBase64FromUrl(url) {
+            try {
+                let res = await fetch(url);
+                let blob = await res.blob();
+                return new Promise((resolve) => {
+                    let reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) { return null; }
+        }
+
+        window.onload = async () => {
+            // SCRIPT JAM, HARI & TAHUN DINAMIS BY AI
+            setInterval(() => {
+                const opsiHari = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const kini = new Date();
+                document.getElementById('txtHari').innerText = kini.toLocaleDateString('id-ID', opsiHari);
+                document.getElementById('txtJam').innerText = kini.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }, 1000);
+            document.getElementById('tahunBerjalan').innerText = new Date().getFullYear();
+            
+            try {
+                let res = await fetch(`${GAS_URL}?action=getUsers&role=Sekolah`);
+                let data = await res.json();
+                if(data && data.length > 0) {
+                    globalSekolah = data[0];
+                    // Tarik Logo Kanan
+                    if(globalSekolah["Logo Kanan"] && globalSekolah["Logo Kanan"].startsWith("http")) {
+                        document.getElementById('logoSekolah').src = globalSekolah["Logo Kanan"];
+                        logoBase64 = await getBase64FromUrl(globalSekolah["Logo Kanan"]);
+                    } else {
+                        document.getElementById('logoSekolah').style.display = "none";
+                    }
+                    // Tarik Logo Kiri (Khusus untuk PDF)
+                    if(globalSekolah["Logo Kiri"] && globalSekolah["Logo Kiri"].startsWith("http")) {
+                        logoKiriBase64 = await getBase64FromUrl(globalSekolah["Logo Kiri"]);
+                    }
+                }
+            } catch (e) {
+                console.log("Menggunakan Logo Default.");
+            }
+        };
+
+        // LOGIN & FETCH DASHBOARD
+        async function prosesLoginAdmin() {
+            let user = document.getElementById('adminUser').value.trim();
+            let pass = document.getElementById('adminPass').value.trim();
+            if(!user || !pass) return Swal.fire({background: '#1e293b', color: '#fff', icon: 'warning', title: 'Perhatian', text: 'Username & Password wajib diisi!'});
+
+            showLoader("Tunggu Yah...");
+            try {
+                let resAdmin = await fetch(`${GAS_URL}?action=getUsers&role=Admin`);
+                let dataAdmin = await resAdmin.json();
+                let match = dataAdmin.find(row => String(row.Username).trim() === user && String(row.Password).trim() === pass);
+                
+                if (match) {
+                    currentAdminName = match["Nama Guru BK"] || "Guru BK";
+                    currentAdminNIP = match["NIP"] || "-";
+                    Swal.fire({ background: '#1e293b', color: '#fff', title: 'Akses Diterima', text: `Selamat datang, ${currentAdminName}`, icon: 'success', timer: 1500, showConfirmButton: false });
+                    await fetchLayananForDashboard(); 
+                    await loadDataDashboard();        
+                    switchSection('section-dashboard');
+                } else { Swal.fire({background: '#1e293b', color: '#fff', title: 'Ditolak', text: 'Username atau Password salah!', icon: 'error'}); }
+            } catch (error) { Swal.fire({background: '#1e293b', color: '#fff', title: 'Error', text: 'Gagal terhubung ke Database Admin.', icon: 'error'}); }
+            hideLoader();
+        }
+
+        async function fetchLayananForDashboard() {
+            try {
+                let res = await fetch(`${GAS_URL}?action=getLayanan`);
+                dataLayananLengkap = await res.json();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadDataDashboard() {
+            try {
+                let res = await fetch(`${GAS_URL}?action=getUsers&role=Hasil_Isian`);
+                let isian = await res.json();
+
+                let total = isian.length;
+                let proses = isian.filter(x => x.Tipe_Evaluasi === "Proses").length;
+                let hasil = isian.filter(x => x.Tipe_Evaluasi === "Hasil").length;
+                let sumGabungan = 0, sumProses = 0, sumHasil = 0;
+                
+                isian.forEach(x => {
+                    let avgRow = parseInt(x.Total_Skor) / 10; // Asumsi skala konversi max 50 jadi 5.0
+                    sumGabungan += avgRow;
+                    if (x.Tipe_Evaluasi === "Proses") sumProses += avgRow;
+                    if (x.Tipe_Evaluasi === "Hasil") sumHasil += avgRow;
+                });
+
+                document.getElementById('statTotal').innerText = total;
+                document.getElementById('statAvgProses').innerText = proses === 0 ? "0.0" : (sumProses / proses).toFixed(2);
+                document.getElementById('statAvgHasil').innerText = hasil === 0 ? "0.0" : (sumHasil / hasil).toFixed(2);
+                document.getElementById('statAvgGabungan').innerText = total === 0 ? "0.0" : (sumGabungan / total).toFixed(2);
+
+                let labelsLayanan = [], dataSkorAvg = [], groupLayanan = {};
+                isian.forEach(row => {
+                    if(!groupLayanan[row.ID_Layanan]) groupLayanan[row.ID_Layanan] = { totalSkor: 0, count: 0 };
+                    groupLayanan[row.ID_Layanan].totalSkor += parseInt(row.Total_Skor);
+                    groupLayanan[row.ID_Layanan].count += 1;
+                });
+
+                for (const [id, data] of Object.entries(groupLayanan)) {
+                    let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(id));
+                    labelsLayanan.push(namaLay ? namaLay.Nama_Layanan : id);
+                    dataSkorAvg.push((data.totalSkor / data.count / 10).toFixed(2));
+                }
+
+                let groupRole = {};
+                isian.forEach(row => { groupRole[row.Role] = (groupRole[row.Role] || 0) + 1; });
+                renderCharts(labelsLayanan, dataSkorAvg, Object.keys(groupRole), Object.values(groupRole));
+
+                let filterLay = document.getElementById('filterLayanan');
+                filterLay.innerHTML = '<option value="">Semua Layanan</option>';
+                dataLayananLengkap.forEach(l => { filterLay.innerHTML += `<option value="${l.ID_Layanan}">${l.Nama_Layanan}</option>`; });
+
+                allAdminTableData = isian.reverse(); 
+                filterTable();
+            } catch (error) { console.error("Gagal load data", error); }
+        }
+
+        function filterTable() {
+            let valLay = document.getElementById('filterLayanan').value;
+            let valRole = document.getElementById('filterRole').value;
+            let valStart = document.getElementById('filterTglAwal').value;
+            let valEnd = document.getElementById('filterTglAkhir').value;
+
+            adminTableData = allAdminTableData.filter(row => {
+                let matchLay = valLay === "" || String(row.ID_Layanan) === String(valLay);
+                let matchRole = valRole === "" || row.Role === valRole;
+                let matchDate = true;
+                if(valStart || valEnd) {
+                    let rowDate = new Date(row.Timestamp); rowDate.setHours(0,0,0,0);
+                    if(valStart) { let sDate = new Date(valStart); sDate.setHours(0,0,0,0); if(rowDate < sDate) matchDate = false; }
+                    if(valEnd) { let eDate = new Date(valEnd); eDate.setHours(0,0,0,0); if(rowDate > eDate) matchDate = false; }
+                }
+                return matchLay && matchRole && matchDate;
+            });
+            currentPage = 1; renderTable();
+        }
+
+        function renderTable() {
+            let start = (currentPage - 1) * rowsPerPage;
+            let end = start + rowsPerPage;
+            let paginatedItems = adminTableData.slice(start, end);
+            let tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+
+            if(paginatedItems.length === 0) tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 italic">Tidak ada data.</td></tr>`;
+
+            paginatedItems.forEach((row, index) => {
+                let no = start + index + 1; // Fitur Penomoran
+                let tgl = new Date(row.Timestamp).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(row.ID_Layanan));
+                let layText = namaLay ? namaLay.Nama_Layanan : row.ID_Layanan;
+
+                // --- LOGIKA PENYESUAIAN NAMA TAMPIL ---
+                let parts = row.Nama_Evaluator.split('|');
+                let namaTampil = parts[0].trim(); // Default ambil nama awal
+                
+                if (row.Role === 'Siswa' && parts.length > 2) {
+                    // Munculkan: Nama Siswa (Kelas X)
+                    namaTampil = `${parts[0].trim()} (${parts[2].trim()})`;
+                } else if (row.Role === 'Orang Tua' && parts.length > 1) {
+                    // Munculkan: Nama Ortu (Ortu dari: Nama Anak)
+                    let namaAnak = parts[1].replace('Anak:', '').trim();
+                    namaTampil = `${parts[0].replace('(Orang Tua)', '').trim()} (Ortu: ${namaAnak})`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors">
+                        <td class="p-3 text-slate-500 font-mono">${no}</td>
+                        <td class="p-3 text-xs text-slate-400">${tgl}</td>
+                        <td class="p-3 font-semibold text-amber-100">${namaTampil}</td>
+                        <td class="p-3 text-xs">${row.Role}</td>
+                        <td class="p-3 text-xs">${layText}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded text-xs font-bold ${row.Tipe_Evaluasi === 'Proses' ? 'bg-blue-900/50 text-blue-300 border border-blue-700' : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'}">${row.Tipe_Evaluasi}</span>
+                        </td>
+                        <td class="p-3 font-extrabold text-amber-400 text-center">${row.Total_Skor}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="cetakRaporIndividu('${row.Timestamp}')" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg shadow-lg text-xs font-bold transition-all">🖨️ Cetak</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            let totalPages = Math.ceil(adminTableData.length / rowsPerPage) || 1;
+            document.getElementById('pageInfo').innerText = `Halaman ${currentPage} dari ${totalPages} (Menampilkan ${adminTableData.length} data)`;
+        }
+
+        function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+        function nextPage() { let totalPages = Math.ceil(adminTableData.length / rowsPerPage); if (currentPage < totalPages) { currentPage++; renderTable(); } }
+
+        function renderCharts(barLabels, barData, pieLabels, pieData) {
+            if(chartInstanceBar) chartInstanceBar.destroy();
+            if(chartInstancePie) chartInstancePie.destroy();
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            let gradBar = ctxBar.createLinearGradient(0, 0, 0, 300);
+            gradBar.addColorStop(0, 'rgba(251, 191, 36, 0.9)'); gradBar.addColorStop(1, 'rgba(217, 119, 6, 0.2)');  
+
+            chartInstanceBar = new Chart(ctxBar, {
+                type: 'bar',
+                data: { labels: barLabels.length>0?barLabels:['Belum Ada Data'], datasets: [{ label: 'Rata-rata Skor', data: barData.length>0?barData:[0], backgroundColor: gradBar, borderColor: '#fbbf24', borderWidth: 1, borderRadius: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 5, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+            });
+
+            const ctxPie = document.getElementById('pieChart').getContext('2d');
+            chartInstancePie = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: { labels: pieLabels.length>0?pieLabels:['Belum Ada Data'], datasets: [{ data: pieData.length>0?pieData:[1], backgroundColor: ['#fbbf24', '#3b82f6', '#10b981', '#a855f7', '#f43f5e'], borderWidth: 3, borderColor: '#1e293b', hoverOffset: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1', padding: 20 } } } }
+            });
+        }
+
+        // ==========================================
+        // FITUR CETAK LAPORAN PDF + AI ANALYSIS (BARU)
+        // ==========================================
+        function openPrintSettings(tipeLap) {
+            document.getElementById('printAreaLayanan').classList.add('hidden');
+            document.getElementById('printAreaUser').classList.add('hidden');
+            
+            if(tipeLap === 'layanan') {
+                document.getElementById('printModalTitle').innerText = "Cetak Berdasarkan Layanan";
+                let selLay = document.getElementById('printSelectLayanan');
+                selLay.innerHTML = "";
+                dataLayananLengkap.forEach(l => { selLay.innerHTML += `<option value="${l.ID_Layanan}">${l.Nama_Layanan}</option>`; });
+                document.getElementById('printAreaLayanan').classList.remove('hidden');
+                document.getElementById('btnEksekusiCetak').setAttribute('onclick', "generatePDF('layanan')");
+            } 
+            else if(tipeLap === 'user') {
+                document.getElementById('printModalTitle').innerText = "Cetak Laporan Per Evaluator";
+                let selUser = document.getElementById('printSelectUser');
+                selUser.innerHTML = "";
+                // Ekstrak nama unik dari allAdminTableData
+                let uniqueUsers = [...new Set(allAdminTableData.map(item => item.Nama_Evaluator))];
+                uniqueUsers.forEach(u => { selUser.innerHTML += `<option value="${u}">${u.split('|')[0]}</option>`; });
+                document.getElementById('printAreaUser').classList.remove('hidden');
+                document.getElementById('btnEksekusiCetak').setAttribute('onclick', "generatePDF('user')");
+            }
+            document.getElementById('printSetupModal').classList.remove('hidden');
+        }
+
+        function getKetSkor(skor) {
+            if(skor >= 4.2) return "Sangat Baik";
+            if(skor >= 3.4) return "Baik";
+            return "Perlu Peningkatan";
+        }
+
+        async function generatePDF(jenis) {
+            document.getElementById('printSetupModal').classList.add('hidden');
+            showLoader("Menyusun Laporan & Analisis AI...");
+            
+            setTimeout(() => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    let y = 15;
+
+                    // Pastikan semua teks berwarna hitam
+                    doc.setTextColor(0, 0, 0);
+
+                    // --- 1. MEMBANGUN KOP SURAT ---
+                    doc.setFont("times", "bold");
+                    if (globalSekolah) {
+                        doc.setFontSize(12);
+                        if(globalSekolah.Pemerintah) { doc.text(globalSekolah.Pemerintah.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
+                        if(globalSekolah.Instansi) { doc.text(globalSekolah.Instansi.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
+                        doc.setFontSize(14);
+                        if(globalSekolah["Nama Sekolah"]) { doc.text(globalSekolah["Nama Sekolah"].toUpperCase(), 105, y, {align: 'center'}); y+=6; }
+                        doc.setFontSize(11);
+                        doc.setFont("times", "normal");
+                        if(globalSekolah.Alamat) { doc.text(globalSekolah.Alamat, 105, y, {align: 'center'}); y+=4; }
+                        
+                        // Logo Kiri dan Kanan
+                        if(logoKiriBase64) { try { doc.addImage(logoKiriBase64, 'PNG', 15, 10, 24, 24); } catch(e){} }
+                        if(logoBase64) { try { doc.addImage(logoBase64, 'PNG', 170, 10, 24, 24); } catch(e){} }
+                    } else {
+                        doc.setFontSize(14); doc.text("LAPORAN EVALUASI BIMBINGAN DAN KONSELING", 105, y, {align: 'center'}); y+=6;
+                    }
+
+                    // Garis Kop Hitam
+                    y+=3;
+                    doc.setDrawColor(0, 0, 0);
+                    doc.setLineWidth(0.8); doc.line(15, y, 195, y);
+                    y+=1.5; doc.setLineWidth(0.3); doc.line(15, y, 195, y);
+                    y+=10;
+
+                    // --- 2. FILTER DATA, SUSUN ANALISIS (A) & RUMUS (B) ---
+                    let dataFilter = [];
+                    let judul = "";
+                    let teksAnalisis = "";
+                    let teksTindakLanjut = "";
+                    let judulAnalisisTabel = "";
+                    let rumusTeks = "";
+
+                    if (jenis === 'layanan') {
+                        let idLay = document.getElementById('printSelectLayanan').value;
+                        let tipeLay = document.getElementById('printSelectTipe').value;
+                        let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(idLay))?.Nama_Layanan || "Layanan";
+                        
+                        judul = `LAPORAN EVALUASI ${tipeLay.toUpperCase()}`;
+                        doc.setFont("times", "bold"); doc.setFontSize(12);
+                        doc.text(judul, 105, y, {align: 'center'}); y+=6;
+                        // Nama Layanan di Tengah
+                        doc.text(`${namaLay.toUpperCase()}`, 105, y, {align: 'center'}); y+=8;
+                        
+                        dataFilter = allAdminTableData.filter(r => String(r.ID_Layanan) === String(idLay) && r.Tipe_Evaluasi === tipeLay);
+                        let totalSkorAll = dataFilter.reduce((a,b)=>a+(parseInt(b.Total_Skor)/10), 0);
+                        let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
+                        let kategori = getKetSkor(avgSkor);
+
+                        if(tipeLay === "Proses") {
+                            if(avgSkor >= 4.2) { teksAnalisis = "jalannya layanan berlangsung sangat interaktif, alokasi waktu terkelola dengan presisi, serta metode dan media yang digunakan oleh Guru BK terbukti sangat efektif dalam membangun antusiasme responden."; teksTindakLanjut = "mempertahankan kualitas strategi dan media layanan yang digunakan saat ini, serta mendokumentasikan praktik baik ini untuk diimbaskan pada materi lainnya."; }
+                            else if(avgSkor >= 3.4) { teksAnalisis = "tahapan pemberian layanan telah berjalan sesuai dengan Rencana Pelaksanaan Layanan (RPL) dan responden menunjukkan respon yang baik, meskipun dinamika interaksi masih dapat dimaksimalkan."; teksTindakLanjut = "melakukan penyesuaian ringan pada metode penyampaian guna meningkatkan keterlibatan aktif responden pada sesi berikutnya."; }
+                            else { teksAnalisis = "adanya kendala teknis maupun non-teknis selama proses pelaksanaan, yang mungkin bersumber dari kurangnya kesesuaian metode dengan karakteristik responden."; teksTindakLanjut = "meninjau dan merevisi Rencana Pelaksanaan Layanan (RPL) BK secara komprehensif, serta merencanakan pendekatan alternatif."; }
+                            judulAnalisisTabel = "A. Hasil Analisis Pelaksanaan (Proses)";
+                        } else {
+                            if(avgSkor >= 4.2) { teksAnalisis = "dampak positif yang sangat signifikan terhadap pemahaman, perasaan, dan kesiapan tindakan dari peserta didik."; teksTindakLanjut = "mempertahankan strategi pengentasan yang digunakan dan merencanakan pengembangan materi lanjutan yang lebih aplikatif."; }
+                            else if(avgSkor >= 3.4) { teksAnalisis = "dampak yang cukup baik bagi peserta didik, namun masih terdapat ruang untuk penguatan materi agar pemahaman lebih mendalam."; teksTindakLanjut = "melakukan pemantauan berkala dan mengoptimalkan pendekatan personal jika diperlukan."; }
+                            else { teksAnalisis = "dampak yang belum optimal dalam mencapai tujuan layanan yang diharapkan."; teksTindakLanjut = "melakukan need assessment ulang, melakukan evaluasi komprehensif, dan menjadwalkan layanan konseling lanjutan."; }
+                            judulAnalisisTabel = "A. Hasil Analisis Dampak (Hasil)";
+                        }
+
+                        let paragraf = `Berdasarkan data yang dihimpun dari ${dataFilter.length} responden, pelaksanaan layanan ${namaLay} memperoleh skor rata-rata ${avgSkor} (${kategori}). Hal ini menunjukkan bahwa ${teksAnalisis} Sebagai tindak lanjut, Guru BK perlu ${teksTindakLanjut}`;
+                        
+                        doc.autoTable({
+                            startY: y,
+                            head: [[judulAnalisisTabel]],
+                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
+                            theme: 'grid',
+                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
+                            margin: { left: 15, right: 15 }
+                        });
+                        y = doc.lastAutoTable.finalY + 8;
+
+                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
+                                    "Rumus Penghitungan: Nilai Rata-rata Layanan = Jumlah Rata-rata Responden ÷ Total Responden.\n" +
+                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                    }
+                    else if (jenis === 'user') {
+                        let namaUser = document.getElementById('printSelectUser').value;
+                        let idArr = namaUser.split('|').map(s => s.trim());
+                        
+                        judul = "LAPORAN EVALUASI PER RESPONDEN";
+                        doc.setFont("times", "bold"); doc.setFontSize(12);
+                        doc.text(judul, 105, y, {align: 'center'}); y+=8;
+
+                        // Rapi dalam Kotak
+                        doc.autoTable({
+                            startY: y,
+                            body: [
+                                [{ content: "DATA IDENTITAS RESPONDEN", colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230,230,230] } }],
+                                ["Nama Lengkap", ": " + (idArr[0] || "-")],
+                                ["Informasi Tambahan", ": " + (idArr.slice(1).join(' | ') || "-")]
+                            ],
+                            theme: 'grid',
+                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
+                            margin: { left: 15, right: 15 }
+                        });
+                        y = doc.lastAutoTable.finalY + 8;
+
+                        dataFilter = allAdminTableData.filter(r => r.Nama_Evaluator === namaUser);
+                        let totalSkorAll = dataFilter.reduce((a,b)=>a+(parseInt(b.Total_Skor)/10), 0);
+                        let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
+                        let kategori = getKetSkor(avgSkor);
+
+                        if(avgSkor >= 4.2) { teksAnalisis = "respon yang sangat positif terhadap layanan bimbingan dan konseling yang diberikan."; teksTindakLanjut = "terus mempertahankan kualitas komunikasi yang terjalin."; }
+                        else if(avgSkor >= 3.4) { teksAnalisis = "respon yang cukup baik terhadap pelaksanaan layanan, dengan beberapa catatan penyesuaian."; teksTindakLanjut = "memantau perkembangan responden secara berkala."; }
+                        else { teksAnalisis = "kebutuhan akan penyesuaian cara pendekatan dari Guru BK."; teksTindakLanjut = "melakukan sesi diskusi mendalam untuk mengetahui hambatan spesifik yang dirasakan."; }
+
+                        let paragraf = `Dokumen ini merupakan hasil rangkuman evaluasi yang diisi oleh individu terkait. Dari hasil isian kuesioner pada berbagai sesi, diperoleh rata-rata skor keseluruhan ${avgSkor} (${kategori}). Analisis menunjukkan bahwa responden memberikan ${teksAnalisis} Tindak lanjut yang disarankan adalah ${teksTindakLanjut}`;
+
+                        doc.autoTable({
+                            startY: y,
+                            head: [["A. Analisis Isian Responden"]],
+                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
+                            theme: 'grid',
+                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
+                            margin: { left: 15, right: 15 }
+                        });
+                        y = doc.lastAutoTable.finalY + 8;
+
+                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
+                                    "Rumus Penghitungan: Nilai Rata-rata Individu = Total Skor Isian ÷ Jumlah Butir Pernyataan.\n" +
+                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                    }
+                    else if (jenis === 'global') {
+                        judul = "REKAPITULASI GLOBAL HASIL EVALUASI BK";
+                        doc.setFont("times", "bold"); doc.setFontSize(12);
+                        doc.text(judul, 105, y, {align: 'center'}); y+=8;
+                        
+                        dataFilter = allAdminTableData;
+                        let dProses = dataFilter.filter(x => x.Tipe_Evaluasi === "Proses");
+                        let dHasil = dataFilter.filter(x => x.Tipe_Evaluasi === "Hasil");
+                        let avgProses = dProses.length === 0 ? 0 : (dProses.reduce((a,b)=>a+(parseInt(b.Total_Skor)/10),0) / dProses.length).toFixed(2);
+                        let avgHasil = dHasil.length === 0 ? 0 : (dHasil.reduce((a,b)=>a+(parseInt(b.Total_Skor)/10),0) / dHasil.length).toFixed(2);
+                        
+                        let namaSek = globalSekolah ? globalSekolah["Nama Sekolah"] : "sekolah ini";
+                        let paragraf = `Laporan ini merangkum seluruh kegiatan Bimbingan dan Konseling di ${namaSek}. Secara akumulatif, aspek Evaluasi Proses dari seluruh layanan mendapatkan skor rata-rata ${avgProses} (${getKetSkor(avgProses)}), menunjukkan bahwa tahapan persiapan hingga pelaksanaan layanan BK telah berjalan dengan kapabilitas manajerial yang terukur. Sementara itu, aspek Evaluasi Hasil mencatatkan skor rata-rata ${avgHasil} (${getKetSkor(avgHasil)}), yang membuktikan bahwa program BK secara keseluruhan memberikan dampak yang konstruktif bagi perkembangan siswa. Guru BK diharapkan menyusun program semester berikutnya berdasarkan landasan data evaluasi ini.`;
+                        
+                        doc.autoTable({
+                            startY: y,
+                            head: [["A. Analisis Komprehensif Bimbingan dan Konseling"]],
+                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
+                            theme: 'grid',
+                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
+                            margin: { left: 15, right: 15 }
+                        });
+                        y = doc.lastAutoTable.finalY + 8;
+
+                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
+                                    "Rumus Penghitungan: Nilai Rata-rata Global = Total Rata-rata Semua Layanan ÷ Total Responden Evaluasi.\n" +
+                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                    }
+
+                    if(dataFilter.length === 0) {
+                        hideLoader();
+                        return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Data Kosong', text:'Tidak ada data yang cocok untuk dicetak.'});
+                    }
+
+                    // --- 3. KOTAK RUMUS SKORING (BAGIAN B) ---
+                    doc.autoTable({
+                        startY: y,
+                        head: [["B. Rumus dan Kriteria Skoring"]],
+                        body: [[ { content: rumusTeks, styles: { halign: 'left' } } ]],
+                        theme: 'grid',
+                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                        headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
+                        margin: { left: 15, right: 15 }
+                    });
+                    y = doc.lastAutoTable.finalY + 8;
+
+                    // --- 4. MEMBANGUN TABEL RINCIAN (BAGIAN C - Rata Tengah Kecuali Nama) ---
+                    let tableHead = [];
+                    let tableBody = [];
+
+                    if(jenis === 'layanan') {
+                        tableHead = [['No', 'Waktu Pengisian', 'Nama Responden', 'Peran', 'Total Skor']];
+                        tableBody = dataFilter.map((r, i) => [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), r.Nama_Evaluator.split('|')[0], r.Role, r.Total_Skor ]);
+                    } 
+                    else if(jenis === 'user') {
+                        tableHead = [['No', 'Waktu Pengisian', 'Layanan BK', 'Tipe Evaluasi', 'Total Skor']];
+                        tableBody = dataFilter.map((r, i) => {
+                            let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(r.ID_Layanan))?.Nama_Layanan || r.ID_Layanan;
+                            return [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), namaLay, r.Tipe_Evaluasi, r.Total_Skor ];
+                        });
+                    }
+                    else if(jenis === 'global') {
+                        tableHead = [['No', 'Waktu Pengisian', 'Nama Responden', 'Layanan BK', 'Tipe', 'Skor']];
+                        tableBody = dataFilter.map((r, i) => {
+                            let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(r.ID_Layanan))?.Nama_Layanan || r.ID_Layanan;
+                            // Mengambil nama full tanpa dipotong substring dan menggabungkan dengan peran
+                            let namaFullDenganPeran = `${r.Nama_Evaluator.split('|')[0].trim()} (${r.Role})`;
+                            return [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), namaFullDenganPeran, namaLay, r.Tipe_Evaluasi, r.Total_Skor ];
+                        });
+                    }
+
+                    // Tambahkan Teks Judul C
+                    doc.setFont("times", "bold"); doc.setFontSize(11);
+                    doc.text("C. Tabel Rincian Data Evaluasi", 15, y); 
+                    
+                    doc.autoTable({
+                        startY: y + 3,
+                        head: tableHead,
+                        body: tableBody,
+                        theme: 'grid',
+                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2, halign: 'center' }, // Default Rata Tengah
+                        headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' },
+                        columnStyles: { 2: { halign: 'center' } }, // Index 2 (Nama/Layanan) di set Rata Kiri
+                        margin: { left: 15, right: 15 }
+                    });
+
+                    // --- 5. TANDA TANGAN (Hanya Nama Bold) ---
+                    let finalY = doc.lastAutoTable.finalY + 20;
+                    if (finalY > 250) { doc.addPage(); finalY = 30; } 
+
+                    let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
+                    let tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+
+                    doc.setFontSize(11);
+                    doc.setFont("times", "normal");
+                    doc.text("Mengetahui,", 30, finalY);
+                    doc.text("Kepala Sekolah,", 30, finalY + 5);
+                    
+                    let kepsekName = (globalSekolah && globalSekolah["Nama Kepsek"]) ? globalSekolah["Nama Kepsek"] : "Nama Kepala Sekolah";
+                    let kepsekNIP = (globalSekolah && globalSekolah["NIP"]) ? globalSekolah["NIP"] : "-";
+                    doc.setFont("times", "bold"); doc.text(kepsekName, 30, finalY + 25);
+                    doc.setFont("times", "normal"); doc.text("NIP. " + kepsekNIP, 30, finalY + 30);
+
+                    doc.text(kota + ", " + tgl, 120, finalY);
+                    doc.text("Guru Bimbingan dan Konseling,", 120, finalY + 5);
+                    doc.setFont("times", "bold"); doc.text(currentAdminName, 120, finalY + 25);
+                    doc.setFont("times", "normal"); doc.text("NIP. " + currentAdminNIP, 120, finalY + 30);
+
+                    // --- 6. TAMPILKAN DI IFRAME (PREVIEW) ---
+                    const pdfBlob = doc.output('bloburl');
+                    document.getElementById('pdfPreviewIframe').src = pdfBlob;
+                    
+                    hideLoader();
+                    document.getElementById('pdfModal').classList.remove('hidden');
+
+                } catch (e) {
+                    hideLoader();
+                    console.error(e);
+                    Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Gagal Mencetak', text:'Terjadi kesalahan saat membuat dokumen PDF.'});
+                }
+            }, 1000);
+        }
+
+        // ==========================================
+        // TOKEN, LAYANAN, & PENGIRIMAN EVALUASI
+        // ==========================================
+        async function prosesMasukEvaluasi() {
+            let code = document.getElementById('inputAuthCode').value.trim().toUpperCase();
+            if(!code) return Swal.fire({background: '#1e293b', color: '#fff', icon: 'error', title: 'Oops', text: 'Kode wajib diisi!'});
+
+            showLoader("Memeriksa Token...");
+            try {
+                let res = await fetch(`${GAS_URL}?action=checkToken&token=${code}`);
+                let result = await res.json();
+                if (result.valid) {
+                    currentToken = code;
+                    await fetchDaftarLayananForm(); 
+                    hideLoader();
+                    switchSection('section-evaluasi');
+                } else {
+                    hideLoader();
+                    Swal.fire({background: '#1e293b', color: '#fff', title: 'Ditolak', text: result.message || 'Token salah.', icon: 'error'});
+                }
+            } catch (error) {
+                hideLoader();
+                Swal.fire({background: '#1e293b', color: '#fff', title: 'Error', text: 'Gagal terhubung ke server.', icon: 'error'});
+            }
+        }
+
+        async function fetchDaftarLayananForm() {
+            let select = document.getElementById('layananSelect');
+            try {
+                let res = await fetch(`${GAS_URL}?action=getLayanan`);
+                let data = await res.json();
+                select.innerHTML = '<option value="">-- Pilih Layanan --</option>';
+                data.forEach(l => { select.innerHTML += `<option value="${l.ID_Layanan}">${l.Nama_Layanan}</option>`; });
+            } catch (error) { console.error(error); }
+        }
+
+        async function aturFormIdentitas() {
+            let role = document.getElementById('roleSelect').value;
+            let area = document.getElementById('areaIdentitasDinamis');
+            if(!role) { area.classList.add('hidden'); area.innerHTML = ""; return; }
+            
+            area.classList.remove('hidden');
+            area.innerHTML = `<div class="flex items-center gap-3 text-amber-400 font-bold animate-pulse text-sm"><div class="spinner !w-5 !h-5 !border-2"></div> Menyiapkan form khusus ${role}...</div>`;
+
+            try {
+                if ((role === 'Siswa' || role === 'Orang Tua') && globalDataSiswa.length === 0) {
+                    let resS = await fetch(`${GAS_URL}?action=getUsers&role=Siswa`);
+                    globalDataSiswa = await resS.json();
+                }
+                if (role === 'Guru' && globalDataGuru.length === 0) {
+                    let resG = await fetch(`${GAS_URL}?action=getUsers&role=Guru`);
+                    globalDataGuru = await resG.json();
+                }
+            } catch (err) { Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Error', text:'Gagal memuat data master.'}); }
+
+            if (role === 'Siswa') {
+                let options = globalDataSiswa.map((s, i) => `<option value="${i}">${s["Nama Siswa"]}</option>`).join('');
+                area.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda</label><select id="inputNamaSiswa" onchange="updateDetailSiswa()" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anda --</option>${options}</select></div>
+                        <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Jenis Kelamin</label><input type="text" id="detailKelamin" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
+                        <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Kelas</label><input type="text" id="detailKelas" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
+                    </div>`;
+            } else if (role === 'Guru') {
+                let options = globalDataGuru.map((g, i) => `<option value="${i}">${g["Nama Guru"]}</option>`).join('');
+                area.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Guru</label><select id="inputNamaGuru" onchange="updateDetailGuru()" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anda --</option>${options}</select></div>
+                        <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">NIP</label><input type="text" id="detailNIP" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
+                        <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Mata Pelajaran</label><input type="text" id="detailMapel" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
+                    </div>`;
+            } else if (role === 'Kepala Sekolah') {
+                area.innerHTML = `<div class="grid md:grid-cols-2 gap-5"><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Lengkap</label><input type="text" id="inputNamaKepsek" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama lengkap..."></div><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">NIP</label><input type="text" id="inputNIPKepsek" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik NIP..."></div></div>`;
+            } else if (role === 'Pengawas') {
+                area.innerHTML = `<div class="grid md:grid-cols-2 gap-5"><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Lengkap</label><input type="text" id="inputNamaPengawas" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama pengawas..."></div><div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">NIP</label><input type="text" id="inputNIPPengawas" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik NIP..."></div><div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Instansi</label><input type="text" id="inputInstansi" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Asal Instansi..."></div></div>`;
+            } else if (role === 'Orang Tua') {
+                let options = globalDataSiswa.map((s, i) => `<option value="${i}">${s["Nama Siswa"]} (Kelas ${s["Kelas"]})</option>`).join('');
+                area.innerHTML = `<div class="grid md:grid-cols-2 gap-5"><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda (Orang Tua)</label><input type="text" id="inputNamaOrtu" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama Anda..."></div><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anak Anda</label><select id="inputNamaAnak" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anak Anda --</option>${options}</select></div></div>`;
+            }
+        }
+
+        function updateDetailSiswa() { let idx = document.getElementById('inputNamaSiswa').value; if(idx !== "") { document.getElementById('detailKelamin').value = globalDataSiswa[idx]["Kelamin"]; document.getElementById('detailKelas').value = globalDataSiswa[idx]["Kelas"]; } else { document.getElementById('detailKelamin').value = ""; document.getElementById('detailKelas').value = ""; } }
+        function updateDetailGuru() { let idx = document.getElementById('inputNamaGuru').value; if(idx !== "") { document.getElementById('detailNIP').value = globalDataGuru[idx]["NIP"] || "-"; document.getElementById('detailMapel').value = globalDataGuru[idx]["Mapel"] || "-"; } else { document.getElementById('detailNIP').value = ""; document.getElementById('detailMapel').value = ""; } }
+
+        async function fetchPernyataan() {
+            let idLayanan = document.getElementById('layananSelect').value;
+            let tipe = document.getElementById('tipeSelect').value;
+            if(!idLayanan || !tipe) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Oops', text:'Layanan dan Tipe wajib dipilih!'});
+
+            showLoader("Menyiapkan Instrumen...");
+            try {
+                let res = await fetch(`${GAS_URL}?action=getPernyataan&idLayanan=${idLayanan}&tipe=${tipe}`);
+                currentPernyataan = await res.json();
+                let container = document.getElementById('containerPertanyaan');
+                container.innerHTML = "";
+                
+                if (currentPernyataan.length === 0) {
+                    hideLoader(); document.getElementById('wrapperKuesioner').classList.add('hidden');
+                    return Swal.fire({background: '#1e293b', color: '#fff', icon:'info', title:'Info', text:'Belum ada instrumen untuk kategori ini.'});
+                }
+
+                currentPernyataan.forEach((item, index) => {
+                    let no = index + 1;
+                    container.innerHTML += `<div class="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50"><p class="text-white font-semibold mb-4 text-sm md:text-base">${no}. ${item.Pernyataan}</p><div class="rating-wrapper">${[1, 2, 3, 4, 5].map(v => `<label class="rating-option"><input type="radio" name="skor_${no}" value="${v}"><span>${v}</span></label>`).join('')}</div></div>`;
+                });
+                hideLoader(); document.getElementById('wrapperKuesioner').classList.remove('hidden');
+            } catch (error) { hideLoader(); Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Error', text:'Gagal memuat kuesioner.'}); }
+        }
+
+        async function submitDataEvaluasi() {
+            let role = document.getElementById('roleSelect').value;
+            let finalNama = "";
+            if (!role) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Peran belum dipilih!'});
+            
+            if (role === "Siswa") { let idx = document.getElementById('inputNamaSiswa')?.value; if(!idx) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Siswa wajib dipilih!'}); finalNama = `${globalDataSiswa[idx]["Nama Siswa"]} | ${globalDataSiswa[idx]["Kelamin"]} | Kelas ${globalDataSiswa[idx]["Kelas"]}`; } 
+            else if (role === "Guru") { let idx = document.getElementById('inputNamaGuru')?.value; if(!idx) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Guru wajib dipilih!'}); finalNama = `${globalDataGuru[idx]["Nama Guru"]} | NIP: ${globalDataGuru[idx]["NIP"]} | Mapel: ${globalDataGuru[idx]["Mapel"]}`; } 
+            else if (role === "Kepala Sekolah") { let nama = document.getElementById('inputNamaKepsek')?.value.trim(); let nip = document.getElementById('inputNIPKepsek')?.value.trim(); if(!nama || !nip) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama dan NIP wajib diisi!'}); finalNama = `${nama} | NIP: ${nip}`; } 
+            else if (role === "Pengawas") { let nama = document.getElementById('inputNamaPengawas')?.value.trim(); let nip = document.getElementById('inputNIPPengawas')?.value.trim(); let inst = document.getElementById('inputInstansi')?.value.trim(); if(!nama || !nip || !inst) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Semua data pengawas wajib diisi!'}); finalNama = `${nama} | NIP: ${nip} | Instansi: ${inst}`; } 
+            else if (role === "Orang Tua") { let namaOrtu = document.getElementById('inputNamaOrtu')?.value.trim(); let idxAnak = document.getElementById('inputNamaAnak')?.value; if(!namaOrtu || !idxAnak) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Anda dan Anak wajib diisi!'}); finalNama = `${namaOrtu} (Orang Tua) | Anak: ${globalDataSiswa[idxAnak]["Nama Siswa"]} (Kelas ${globalDataSiswa[idxAnak]["Kelas"]})`; }
+
+            let idLay = document.getElementById('layananSelect').value;
+            let tipe = document.getElementById('tipeSelect').value;
+            let saran = document.getElementById('inputSaran').value.trim();
+
+            if(!idLay || !tipe) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Fokus Penilaian wajib dipilih!'});
+
+            let skor = [], total = 0;
+            for(let i = 1; i <= currentPernyataan.length; i++) {
+                let r = document.querySelector(`input[name="skor_${i}"]:checked`);
+                if(!r) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:`Soal nomor ${i} belum dijawab!`});
+                let val = parseInt(r.value); skor.push(val); total += val;
+            }
+
+            let payload = { token: currentToken, role: role, namaEvaluator: finalNama, tipeEvaluasi: tipe, idLayanan: idLay, skor: skor, totalSkor: total, saran: saran };
+
+            let confirm = await Swal.fire({ background: '#1e293b', color: '#f8fafc', title: 'Konfirmasi Pengiriman', text: 'Apakah Anda yakin data evaluasi yang diisi sudah benar dan sesuai?', icon: 'question', showCancelButton: true, confirmButtonColor: '#fbbf24', cancelButtonColor: '#475569', confirmButtonText: 'Ya, Kirim Data', cancelButtonText: 'Periksa Lagi' });
+            if(!confirm.isConfirmed) return;
+
+            showLoader("Menyimpan Evaluasi...");
+            try {
+                let res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+                let result = await res.json();
+                hideLoader();
+                
+                if(result.status === "success") {
+                    let summaryHtml = `<div class="text-left text-sm mt-4 bg-slate-800/80 p-5 rounded-xl border border-slate-700 shadow-inner"><p class="mb-2"><span class="text-slate-400">Total Skor Diperoleh:</span> <strong class="text-amber-400 text-2xl block mt-1">${total} Poin</strong></p><p class="mb-2"><span class="text-slate-400 block mb-1">Rincian Jawaban per Nomor:</span> <span class="text-emerald-400 font-mono tracking-widest text-lg bg-emerald-900/30 px-3 py-1 rounded">[${skor.join(', ')}]</span></p><p class="mt-4 text-xs text-slate-500 italic text-center">Data Anda telah terenkripsi dan tersimpan dengan aman di server.</p></div>`;
+                    Swal.fire({ background: '#1e293b', color: '#fff', title: 'Evaluasi Terkirim! 🎉', html: summaryHtml, icon: 'success', confirmButtonText: 'Selesai & Keluar', confirmButtonColor: '#fbbf24', allowOutsideClick: false }).then(() => window.location.reload());
+                } else { Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Gagal', text:result.message}); }
+            } catch (error) { hideLoader(); Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Error', text:'Koneksi gagal. Pastikan internet Anda stabil.'}); }
+        }
+		// ==========================================
+        // FITUR CETAK RAPOR 1 LEMBAR (DI DALAM TABEL)
+        // ==========================================
+        async function cetakRaporIndividu(timestamp) {
+            let rowData = allAdminTableData.find(r => String(r.Timestamp) === String(timestamp));
+            if(!rowData) return Swal.fire('Error', 'Data tidak ditemukan', 'error');
+
+            showLoader("Menarik Pertanyaan & Menyusun Rapor...");
+            try {
+                // 1. Tarik Teks Pertanyaan dari Database
+                let resQ = await fetch(`${GAS_URL}?action=getPernyataan&idLayanan=${rowData.ID_Layanan}&tipe=${rowData.Tipe_Evaluasi}`);
+                let questions = await resQ.json();
+
+                // 2. Persiapan jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                let y = 15;
+                doc.setTextColor(0, 0, 0);
+
+                // --- KOP SURAT ---
+                doc.setFont("times", "bold");
+                if (globalSekolah) {
+                    doc.setFontSize(12);
+                    if(globalSekolah.Pemerintah) { doc.text(globalSekolah.Pemerintah.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
+                    if(globalSekolah.Instansi) { doc.text(globalSekolah.Instansi.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
+                    doc.setFontSize(14);
+                    if(globalSekolah["Nama Sekolah"]) { doc.text(globalSekolah["Nama Sekolah"].toUpperCase(), 105, y, {align: 'center'}); y+=6; }
+                    doc.setFontSize(11); doc.setFont("times", "normal");
+                    if(globalSekolah.Alamat) { doc.text(globalSekolah.Alamat, 105, y, {align: 'center'}); y+=4; }
+                    if(logoKiriBase64) { try { doc.addImage(logoKiriBase64, 'PNG', 15, 10, 24, 24); } catch(e){} }
+                    if(logoBase64) { try { doc.addImage(logoBase64, 'PNG', 170, 10, 24, 24); } catch(e){} }
+                }
+                y+=3; doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(0.8); doc.line(15, y, 195, y);
+                y+=1.5; doc.setLineWidth(0.3); doc.line(15, y, 195, y); y+=8;
+
+                // --- JUDUL RAPOR ---
+                doc.setFont("times", "bold"); doc.setFontSize(12);
+                doc.text("LAPORAN ANGKET EVALUASI LAYANAN BK (RESPONDEN)", 105, y, {align: 'center'}); y+=6;
+
+                // --- A. IDENTITAS (VERSI KOTAK RAPI TANPA TITIK DUA) ---
+                let tglIsi = new Date(rowData.Timestamp).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(rowData.ID_Layanan))?.Nama_Layanan || rowData.ID_Layanan;
+                let idArr = rowData.Nama_Evaluator.split('|').map(s => s.trim());
+                
+                doc.autoTable({
+                    startY: y,
+                    body: [
+                        [{ content: "A. IDENTITAS RESPONDEN", colSpan: 4, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+                        ["Nama Responden", (idArr[0] || "-"), "Waktu Isi", tglIsi],
+                        ["Keterangan", (idArr.slice(1).join(' | ') || rowData.Role), "Layanan", namaLay + " (" + rowData.Tipe_Evaluasi + ")"]
+                    ],
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    columnStyles: { 
+                        0: { fontStyle: 'bold', cellWidth: 32 }, 
+                        2: { fontStyle: 'bold', cellWidth: 22 } 
+                    },
+                    margin: { left: 15, right: 15 }
+                });
+                y = doc.lastAutoTable.finalY + 5;
+
+                // --- B. ANALISIS SINGKAT & RUMUS ---
+                let totalSkorAll = parseInt(rowData.Total_Skor);
+                let avgSkor = (totalSkorAll / 10).toFixed(2); // Asumsi 10 soal
+                let kategori = getKetSkor(avgSkor);
+                let teksAnalisis = "";
+
+                if(avgSkor >= 4.2) teksAnalisis = "Sangat Baik. Responden menunjukkan antusiasme dan dampak positif yang sangat signifikan terhadap layanan yang diberikan.";
+                else if(avgSkor >= 3.4) teksAnalisis = "Baik. Responden memberikan respon positif dengan beberapa catatan untuk optimalisasi layanan ke depan.";
+                else teksAnalisis = "Perlu Peningkatan. Terdapat indikasi perlunya penyesuaian pendekatan atau metode layanan untuk responden ini.";
+
+                let teksGabungan = `Nilai Rata-rata: ${avgSkor} (${kategori}).\nAnalisis: ${teksAnalisis}\nKriteria Skoring: 4.20-5.00 (Sangat Baik) | 3.40-4.19 (Baik) | <3.40 (Perlu Peningkatan).`;
+
+                doc.autoTable({
+                    startY: y,
+                    head: [["B. Analisis dan Kriteria Penilaian"]],
+                    body: [[teksGabungan]],
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    headStyles: { fillColor: [230, 230, 230], fontStyle: 'bold' },
+                    margin: { left: 15, right: 15 }
+                });
+                y = doc.lastAutoTable.finalY + 4;
+
+                // --- C. TABEL RINCIAN PERTANYAAN ---
+                let tableQA = [];
+                if(questions.length === 0) {
+                    tableQA = [["-", "Teks pertanyaan tidak ditemukan di database", "-"]];
+                } else {
+                    questions.forEach((q, i) => {
+                        let skorPilih = rowData["S" + (i+1)] || "-";
+                        tableQA.push([i+1, q.Pernyataan, skorPilih]);
+                    });
+                }
+                tableQA.push([{ content: "TOTAL SKOR YANG DIPEROLEH", colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, { content: totalSkorAll, styles: { fontStyle: 'bold' } }]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [["No", "Butir Pertanyaan Kuesioner", "Skor"]],
+                    body: tableQA,
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    headStyles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' },
+                    columnStyles: { 0: { halign: 'center', cellWidth: 10 }, 1: { halign: 'left' }, 2: { halign: 'center', cellWidth: 20 } },
+                    margin: { left: 15, right: 15 }
+                });
+                y = doc.lastAutoTable.finalY + 4;
+
+                // --- CATATAN / SARAN ---
+                let saranUser = rowData.Saran ? rowData.Saran : "Tidak ada catatan/saran tambahan dari responden.";
+                doc.autoTable({
+                    startY: y,
+                    head: [["Catatan / Saran Tambahan Responden:"]],
+                    body: [[{ content: saranUser, styles: { fontStyle: 'italic' } }]],
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    headStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
+                    margin: { left: 15, right: 15 }
+                });
+                y = doc.lastAutoTable.finalY + 15;
+
+                // --- D. TANDA TANGAN ---
+                if (y > 250) { doc.addPage(); y = 30; } 
+                let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
+                let tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+
+                doc.setFontSize(10); doc.setFont("times", "normal");
+                doc.text("Mengetahui,", 30, y); doc.text("Kepala Sekolah,", 30, y + 5);
+                
+                let kepsekName = (globalSekolah && globalSekolah["Nama Kepsek"]) ? globalSekolah["Nama Kepsek"] : "Nama Kepala Sekolah";
+                let kepsekNIP = (globalSekolah && globalSekolah["NIP"]) ? globalSekolah["NIP"] : "-";
+                doc.setFont("times", "bold"); doc.text(kepsekName, 30, y + 22);
+                doc.setFont("times", "normal"); doc.text("NIP. " + kepsekNIP, 30, y + 27);
+
+                doc.text(kota + ", " + tgl, 120, y); doc.text("Guru Bimbingan dan Konseling,", 120, y + 5);
+                doc.setFont("times", "bold"); doc.text(currentAdminName, 120, y + 22);
+                doc.setFont("times", "normal"); doc.text("NIP. " + currentAdminNIP, 120, y + 27);
+
+                // Tampilkan Preview
+                const pdfBlob = doc.output('bloburl');
+                document.getElementById('pdfPreviewIframe').src = pdfBlob;
+                hideLoader();
+                document.getElementById('pdfModal').classList.remove('hidden');
+
+            } catch(e) {
+                hideLoader(); console.error(e);
+                Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Gagal', text:'Terjadi kesalahan saat menyusun rapor.'});
+            }
+        }
+    </script>
+</body>
+</html>
