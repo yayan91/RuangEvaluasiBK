@@ -1488,19 +1488,19 @@
                 // --- CATATAN RUMUS & TANDA TANGAN ---
                 y = doc.lastAutoTable.finalY + 8;
                 
-                // Siapkan teks dinamis berdasarkan data sesi
-                let teksRapor = `Catatan Penilaian:\nNilai Rata-rata: ${avgSkor} (${kategori}).\nAnalisis: ${teksAnalisis}\nKriteria Skoring: 4.20-5.00 (Sangat Baik) | 3.40-4.19 (Baik) | <3.40 (Perlu Peningkatan).`;
+                // Urutan catatan dengan tambahan Pendekatan Penilaian Skala Likert
+                let teksRapor = `Catatan Penilaian:\n- Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n- Nilai Rata-rata: ${avgSkor} (${kategori}).\n- Kriteria Skoring: 4.20-5.00 (Sangat Baik) | 3.40-4.19 (Baik) | <3.40 (Perlu Peningkatan).`;
                 
-                // Pembungkus teks otomatis (word wrap) agar analisis panjang tidak keluar kertas
+                // Pembungkus teks otomatis (word wrap) agar rapi
                 doc.setFont("times", "italic"); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
                 let splitTeksRapor = doc.splitTextToSize(teksRapor, 180);
                 
-                // Logika Spasi Halaman Dinamis (Teks wrap butuh ruang fleksibel)
+                // Logika Spasi Halaman Dinamis agar tidak bertabrakan dengan tanda tangan
                 let textHeight = splitTeksRapor.length * 4; 
                 if (y > (297 - textHeight - 35)) { doc.addPage(); y = 20; } 
                 
                 doc.text(splitTeksRapor, 15, y);
-                y += textHeight + 10; // Geser garis Y ke bawah teks untuk tempat tanda tangan
+                y += textHeight + 10; // Memberi jarak ruang kosong sebelum nama kota dan tanda tangan
                 doc.setTextColor(0, 0, 0);
 
                 let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
