@@ -357,8 +357,7 @@
                 <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Pratinjau Laporan Resmi</h3>
                 <button onclick="document.getElementById('pdfModal').classList.add('hidden')" class="outline-btn px-4 py-1.5 rounded-lg text-sm text-red-400 border-red-500/50 hover:bg-red-500/10">Tutup</button>
             </div>
-            <div class="flex-1 w-full bg-slate-500">
-                <iframe id="pdfPreviewIframe" class="w-full h-full border-none"></iframe>
+           <div class="flex-1 w-full bg-slate-500 hidden"> <iframe id="pdfPreviewIframe" class="w-full h-full border-none"></iframe>
             </div>
         </div>
     </div>
@@ -676,7 +675,13 @@
                         if(globalSekolah.Instansi) { doc.text(globalSekolah.Instansi.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
                         doc.setFontSize(14);
                         if(globalSekolah["Nama Sekolah"]) { doc.text(globalSekolah["Nama Sekolah"].toUpperCase(), 105, y, {align: 'center'}); y+=6; }
-                        doc.setFontSize(11);
+                        
+                        // TAMBAHAN: Teks "BIMBINGAN DAN KONSELING" di bawah Nama Sekolah
+                        doc.setFontSize(12);
+                        doc.text("BIMBINGAN DAN KONSELING", 105, y, {align: 'center'}); 
+                        y+=5; // Menggeser baris alamat ke bawah agar rapi
+                        
+                        doc.setFontSize(10);
                         doc.setFont("times", "normal");
                         if(globalSekolah.Alamat) { doc.text(globalSekolah.Alamat, 105, y, {align: 'center'}); y+=4; }
                         
@@ -760,8 +765,8 @@
                             startY: y,
                             body: [
                                 [{ content: "DATA IDENTITAS RESPONDEN", colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230,230,230] } }],
-                                ["Nama Lengkap", ": " + (idArr[0] || "-")],
-                                ["Informasi Tambahan", ": " + (idArr.slice(1).join(' | ') || "-")]
+                                ["Nama Lengkap", (idArr[0] || "-")], // Titik dua (:) dihapus
+                                ["Informasi Tambahan", (idArr.slice(1).join(' | ') || "-")] // Titik dua (:) dihapus
                             ],
                             theme: 'grid',
                             styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
@@ -797,7 +802,7 @@
                                     "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
                     }
                     else if (jenis === 'global') {
-                        judul = "REKAPITULASI GLOBAL HASIL EVALUASI BK";
+                        judul = "REKAPITULASI HASIL EVALUASI PROSES DAN EVALUASI HASIL BK";
                         doc.setFont("times", "bold"); doc.setFontSize(12);
                         doc.text(judul, 105, y, {align: 'center'}); y+=8;
                         
@@ -905,12 +910,15 @@
                     doc.setFont("times", "bold"); doc.text(currentAdminName, 120, finalY + 25);
                     doc.setFont("times", "normal"); doc.text("NIP. " + currentAdminNIP, 120, finalY + 30);
 
-                    // --- 6. TAMPILKAN DI IFRAME (PREVIEW) ---
-                    const pdfBlob = doc.output('bloburl');
-                    document.getElementById('pdfPreviewIframe').src = pdfBlob;
+                    // --- 6. TAMPILKAN DI TAB BARU (LANGSUNG BISA PRINT / UNDUH) ---
+                    const pdfBlob = doc.output('blob');
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    
+                    // Membuka PDF di tab baru
+                    window.open(blobUrl, '_blank');
                     
                     hideLoader();
-                    document.getElementById('pdfModal').classList.remove('hidden');
+                    // Kode untuk membuka modal lama dihapus agar tidak mengganggu
 
                 } catch (e) {
                     hideLoader();
@@ -1097,7 +1105,13 @@
                     if(globalSekolah.Instansi) { doc.text(globalSekolah.Instansi.toUpperCase(), 105, y, {align: 'center'}); y+=5; }
                     doc.setFontSize(14);
                     if(globalSekolah["Nama Sekolah"]) { doc.text(globalSekolah["Nama Sekolah"].toUpperCase(), 105, y, {align: 'center'}); y+=6; }
-                    doc.setFontSize(11); doc.setFont("times", "normal");
+                    
+                    // TAMBAHAN: Teks "BIMBINGAN DAN KONSELING" di bawah Nama Sekolah
+                    doc.setFontSize(12);
+                    doc.text("BIMBINGAN DAN KONSELING", 105, y, {align: 'center'}); 
+                    y+=5; // Menggeser baris berikutnya ke bawah agar tidak bertumpuk
+                    
+                    doc.setFontSize(10); doc.setFont("times", "normal");
                     if(globalSekolah.Alamat) { doc.text(globalSekolah.Alamat, 105, y, {align: 'center'}); y+=4; }
                     if(logoKiriBase64) { try { doc.addImage(logoKiriBase64, 'PNG', 15, 10, 24, 24); } catch(e){} }
                     if(logoBase64) { try { doc.addImage(logoBase64, 'PNG', 170, 10, 24, 24); } catch(e){} }
@@ -1209,11 +1223,13 @@
                 doc.setFont("times", "bold"); doc.text(currentAdminName, 120, y + 22);
                 doc.setFont("times", "normal"); doc.text("NIP. " + currentAdminNIP, 120, y + 27);
 
-                // Tampilkan Preview
-                const pdfBlob = doc.output('bloburl');
-                document.getElementById('pdfPreviewIframe').src = pdfBlob;
+                // Tampilkan di Tab Baru (Langsung Print / Unduh)
+                const pdfBlob = doc.output('blob');
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                window.open(blobUrl, '_blank');
+                
                 hideLoader();
-                document.getElementById('pdfModal').classList.remove('hidden');
+                // Kode modal lama dihapus agar tidak muncul mengganggu
 
             } catch(e) {
                 hideLoader(); console.error(e);
