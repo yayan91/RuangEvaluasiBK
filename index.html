@@ -393,7 +393,7 @@
 
     <script>
         // GANTI DENGAN URL WEB APP ANDA
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwM5RxBd_HJG6_vlyWNEABVRZX-wlxKSh8T4jWazK-JqDmroCfHM5cosFXyx7N-1GnlxQ/exec"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyUwftXoARMbESd-434CveMIYG96krC7qXS1I56OHyK58dBSToXAkA43txkg8fblKlQew/exec"; 
 
         let currentToken = "";
         let currentPernyataan = [];
@@ -983,9 +983,28 @@
                         columnStyles: { 2: { halign: 'left' } }, margin: { left: 15, right: 15 }
                     });
 
-                    // --- 5. TANDA TANGAN (Hanya Nama Bold) ---
-                    let finalY = doc.lastAutoTable.finalY + 20;
-                    if (finalY > 250) { doc.addPage(); finalY = 30; } 
+                    // --- 5. TANDA TANGAN & RUMUS SKORING ---
+                    let finalY = doc.lastAutoTable.finalY + 10;
+                    
+                    let teksCatatan = "";
+                    if (jenis === 'layanan') {
+                        teksCatatan = "Catatan Penilaian:\n- Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n- Rumus Penghitungan: Nilai Rata-rata Layanan = Jumlah Rata-rata Responden / Total Responden.\n- Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                    } else if (jenis === 'user') {
+                        teksCatatan = "Catatan Penilaian:\n- Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n- Rumus Penghitungan: Nilai Rata-rata Individu = Total Skor Isian / Jumlah Butir Pernyataan.\n- Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                    }
+
+                    // Logika Spasi Halaman Dinamis: Butuh sekitar 45mm untuk rumus + tanda tangan
+                    let spaceNeeded = (jenis !== 'global') ? 45 : 35;
+                    if (finalY > (297 - spaceNeeded)) { doc.addPage(); finalY = 20; } 
+
+                    if (jenis !== 'global') {
+                        doc.setFont("times", "italic"); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+                        doc.text(teksCatatan, 15, finalY);
+                        finalY += 18; // Geser garis Y ke bawah rumus untuk tempat tanda tangan
+                        doc.setTextColor(0, 0, 0);
+                    } else {
+                        finalY += 10; // Jarak normal jika cetak global
+                    }
 
                     let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
                     let tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
@@ -1466,8 +1485,24 @@
                 });
                 y = doc.lastAutoTable.finalY + 12;
 
-                // --- TANDA TANGAN ---
-                if (y > 250) { doc.addPage(); y = 30; } 
+                // --- CATATAN RUMUS & TANDA TANGAN ---
+                y = doc.lastAutoTable.finalY + 8;
+                
+                // Siapkan teks dinamis berdasarkan data sesi
+                let teksRapor = `Catatan Penilaian:\nNilai Rata-rata: ${avgSkor} (${kategori}).\nAnalisis: ${teksAnalisis}\nKriteria Skoring: 4.20-5.00 (Sangat Baik) | 3.40-4.19 (Baik) | <3.40 (Perlu Peningkatan).`;
+                
+                // Pembungkus teks otomatis (word wrap) agar analisis panjang tidak keluar kertas
+                doc.setFont("times", "italic"); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+                let splitTeksRapor = doc.splitTextToSize(teksRapor, 180);
+                
+                // Logika Spasi Halaman Dinamis (Teks wrap butuh ruang fleksibel)
+                let textHeight = splitTeksRapor.length * 4; 
+                if (y > (297 - textHeight - 35)) { doc.addPage(); y = 20; } 
+                
+                doc.text(splitTeksRapor, 15, y);
+                y += textHeight + 10; // Geser garis Y ke bawah teks untuk tempat tanda tangan
+                doc.setTextColor(0, 0, 0);
+
                 let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
                 let tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
 
