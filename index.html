@@ -195,8 +195,7 @@
 
         <div class="glass-panel p-6 md:p-8 mb-6 relative">
             <h3 class="text-lg font-bold border-b border-slate-700 pb-3 mb-6 text-amber-400 flex items-center gap-2">2. Fokus Penilaian</h3>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div>
+            <div class="grid md:grid-cols-3 gap-6"> <div>
                     <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Pilih Layanan BK</label>
                     <select id="layananSelect" class="w-full px-4 py-3.5 rounded-xl dark-input font-semibold"></select>
                 </div>
@@ -206,6 +205,12 @@
                         <option value="">-- Pilih Jenis --</option>
                         <option value="Proses">Evaluasi Proses (Pelaksanaan)</option>
                         <option value="Hasil">Evaluasi Hasil (Dampak)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Nama Guru BK</label>
+                    <select id="targetGuruSelect" class="w-full px-4 py-3.5 rounded-xl dark-input font-semibold">
+                        <option value="">-- Pilih Guru BK --</option>
                     </select>
                 </div>
             </div>
@@ -319,18 +324,18 @@
         </div>
     </section>
 
-    <div id="printSetupModal" class="hidden fixed inset-0 z-[50] bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-4">
+   <div id="printSetupModal" class="hidden fixed inset-0 z-[50] bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-4">
         <div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md flex flex-col shadow-2xl p-6 relative">
             <h3 class="text-xl font-bold text-amber-400 border-b border-slate-700 pb-3 mb-4" id="printModalTitle">Pengaturan Cetak</h3>
             
             <div id="printAreaLayanan" class="hidden space-y-4 mb-6">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Pilih Layanan</label>
-                    <select id="printSelectLayanan" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
+                    <select id="printSelectLayanan" onchange="ambilCatatanAktif()" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Tipe Evaluasi</label>
-                    <select id="printSelectTipe" class="w-full px-4 py-3 rounded-xl dark-input font-semibold">
+                    <select id="printSelectTipe" onchange="ambilCatatanAktif()" class="w-full px-4 py-3 rounded-xl dark-input font-semibold">
                         <option value="Proses">Evaluasi Proses</option>
                         <option value="Hasil">Evaluasi Hasil</option>
                     </select>
@@ -340,7 +345,25 @@
             <div id="printAreaUser" class="hidden space-y-4 mb-6">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Pilih Nama Responden</label>
-                    <select id="printSelectUser" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
+                    <select id="printSelectUser" onchange="ambilCatatanAktif()" class="w-full px-4 py-3 rounded-xl dark-input font-semibold"></select>
+                </div>
+            </div>
+
+            <div id="areaCatatanTambahan" class="mt-4 pt-4 border-t border-slate-700 hidden">
+                <p class="text-xs text-amber-400 font-bold mb-2 uppercase">📊 Ringkasan Data Otomatis:</p>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700 mb-5 flex justify-between items-center text-sm">
+                    <div><span class="text-slate-400 text-xs block" id="labelResponden">Responden</span> <span id="infoResponden" class="text-white font-extrabold">0</span></div>
+                    <div><span class="text-slate-400 text-xs block">Rata-rata</span> <span id="infoSkor" class="text-amber-400 font-extrabold">0.0</span></div>
+                    <div class="text-right"><span class="text-slate-400 text-xs block">Predikat</span> <span id="infoPredikat" class="text-emerald-400 font-extrabold">-</span></div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-300 mb-2 uppercase">📝 Hasil Analisis Kualitatif</label>
+                    <textarea id="inputCatatanAnalisis" rows="3" class="w-full px-4 py-3 rounded-xl dark-input resize-none" placeholder="Ketik narasi analisis..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2 uppercase">🚀 Rencana Tindak Lanjut</label>
+                    <textarea id="inputCatatanTindakLanjut" rows="3" class="w-full px-4 py-3 rounded-xl dark-input resize-none" placeholder="Ketik rencana tindak lanjut..."></textarea>
                 </div>
             </div>
 
@@ -370,7 +393,7 @@
 
     <script>
         // GANTI DENGAN URL WEB APP ANDA
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzSSzUuMgr9Xc5U5Haiy94_UcuT6B505ZDjCayKa6RUHGmj8Y4o7Tc0Lgybdc9XmHkLZA/exec"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwM5RxBd_HJG6_vlyWNEABVRZX-wlxKSh8T4jWazK-JqDmroCfHM5cosFXyx7N-1GnlxQ/exec"; 
 
         let currentToken = "";
         let currentPernyataan = [];
@@ -379,6 +402,64 @@
         let dataLayananLengkap = [];
         let globalDataSiswa = [];
         let globalDataGuru = [];
+		
+		// --- VARIABEL & FUNGSI BARU UNTUK CATATAN LAPORAN ---
+        let dataSemuaCatatan = []; 
+
+        async function loadSemuaCatatanLaporan() {
+            try {
+                let res = await fetch(`${GAS_URL}?action=getCatatanLaporan`);
+                dataSemuaCatatan = await res.json();
+            } catch (e) { console.error("Gagal memuat catatan", e); }
+        }
+
+        function ambilCatatanAktif() {
+            let isLayananMode = !document.getElementById('printAreaLayanan').classList.contains('hidden');
+            let idLay, tipe, labelRes;
+            let txtAnalisis = document.getElementById('inputCatatanAnalisis');
+            let txtTindak = document.getElementById('inputCatatanTindakLanjut');
+
+            if (isLayananMode) {
+                idLay = document.getElementById('printSelectLayanan').value;
+                tipe = document.getElementById('printSelectTipe').value;
+                if(!idLay || !tipe) return;
+                labelRes = "Responden";
+
+                let dataFilter = allAdminTableData.filter(r => String(r.ID_Layanan) === String(idLay) && r.Tipe_Evaluasi === tipe);
+                let totalSkorAll = dataFilter.reduce((a,b) => a + (parseInt(b.Total_Skor)/10), 0);
+                let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
+                
+                document.getElementById('infoResponden').innerText = dataFilter.length + " Orang";
+                document.getElementById('infoSkor').innerText = avgSkor;
+                document.getElementById('infoPredikat').innerText = getKetSkor(avgSkor);
+
+                let catatan = dataSemuaCatatan.find(c => String(c.ID_Layanan) === String(idLay) && c.Tipe_Evaluasi === tipe);
+                txtAnalisis.value = catatan ? (catatan.Teks_Analisis || "") : "";
+                txtTindak.value = catatan ? (catatan.Teks_Tindak_Lanjut || "") : "";
+            } else {
+                // KONDISI RESPONDEN MODE
+                let namaUser = document.getElementById('printSelectUser').value;
+                if(!namaUser) return;
+                idLay = namaUser;
+                tipe = "Individu"; // Penanda khusus di database sheet Catatan_Laporan
+                labelRes = "Total Isian";
+
+                let dataFilter = allAdminTableData.filter(r => r.Nama_Evaluator === namaUser);
+                let totalSkorAll = dataFilter.reduce((a,b) => a + (parseInt(b.Total_Skor)/10), 0);
+                let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
+                
+                document.getElementById('infoResponden').innerText = dataFilter.length + " Sesi Layanan";
+                document.getElementById('infoSkor').innerText = avgSkor;
+                document.getElementById('infoPredikat').innerText = getKetSkor(avgSkor);
+
+                let catatan = dataSemuaCatatan.find(c => String(c.ID_Layanan) === String(idLay) && c.Tipe_Evaluasi === tipe);
+                txtAnalisis.value = catatan ? (catatan.Teks_Analisis || "") : "";
+                txtTindak.value = catatan ? (catatan.Teks_Tindak_Lanjut || "") : "";
+            }
+            
+            document.getElementById('labelResponden').innerText = labelRes;
+            document.getElementById('areaCatatanTambahan').classList.remove('hidden');
+        }
 
         // Data Master & Pagination
         let allAdminTableData = []; 
@@ -463,8 +544,14 @@
                 if (match) {
                     currentAdminName = match["Nama Guru BK"] || "Guru BK";
                     currentAdminNIP = match["NIP"] || "-";
-                    Swal.fire({ background: '#1e293b', color: '#fff', title: 'Akses Diterima', text: `Selamat datang, ${currentAdminName}`, icon: 'success', timer: 1500, showConfirmButton: false });
-                    await fetchLayananForDashboard(); 
+                    
+                    // CEK SUPERADMIN: Jika username-nya superadmin, beri hak akses penuh
+                    let usr = String(match.Username).toLowerCase().trim();
+                    isSuperAdmin = (usr === 'superadmin');
+
+                    Swal.fire({ background: '#1e293b', color: '#fff', title: 'Akses Diterima', text: `Selamat datang, ${currentAdminName} ${isSuperAdmin ? '(Superadmin)' : ''}`, icon: 'success', timer: 1500, showConfirmButton: false });
+                    await fetchLayananForDashboard();
+                    await loadSemuaCatatanLaporan();
                     await loadDataDashboard();        
                     switchSection('section-dashboard');
                 } else { Swal.fire({background: '#1e293b', color: '#fff', title: 'Ditolak', text: 'Username atau Password salah!', icon: 'error'}); }
@@ -482,7 +569,16 @@
         async function loadDataDashboard() {
             try {
                 let res = await fetch(`${GAS_URL}?action=getUsers&role=Hasil_Isian`);
-                let isian = await res.json();
+                let isianMentah = await res.json();
+                let isian = [];
+
+                // --- SISTEM FILTER ISOLASI DATA (SUPERADMIN VS GURU BK) ---
+                if (isSuperAdmin) {
+                    isian = isianMentah; // Superadmin melihat semua data sekolah
+                } else {
+                    // Guru BK biasa HANYA melihat data yang targetnya adalah nama dia sendiri
+                    isian = isianMentah.filter(x => x.Target_Guru_BK === currentAdminName); 
+                }
 
                 let total = isian.length;
                 let proses = isian.filter(x => x.Tipe_Evaluasi === "Proses").length;
@@ -645,6 +741,8 @@
                 document.getElementById('printAreaUser').classList.remove('hidden');
                 document.getElementById('btnEksekusiCetak').setAttribute('onclick', "generatePDF('user')");
             }
+			// Beri sedikit jeda agar dropdown terisi dulu, lalu panggil datanya
+                setTimeout(() => ambilCatatanAktif(), 100);
             document.getElementById('printSetupModal').classList.remove('hidden');
         }
 
@@ -699,12 +797,11 @@
                     y+=1.5; doc.setLineWidth(0.3); doc.line(15, y, 195, y);
                     y+=10;
 
-                    // --- 2. FILTER DATA, SUSUN ANALISIS (A) & RUMUS (B) ---
+                    // --- 2. FILTER DATA, SUSUN ANALISIS & RENCANA ---
                     let dataFilter = [];
                     let judul = "";
                     let teksAnalisis = "";
                     let teksTindakLanjut = "";
-                    let judulAnalisisTabel = "";
                     let rumusTeks = "";
 
                     if (jenis === 'layanan') {
@@ -715,7 +812,6 @@
                         judul = `LAPORAN EVALUASI ${tipeLay.toUpperCase()}`;
                         doc.setFont("times", "bold"); doc.setFontSize(12);
                         doc.text(judul, 105, y, {align: 'center'}); y+=6;
-                        // Nama Layanan di Tengah
                         doc.text(`${namaLay.toUpperCase()}`, 105, y, {align: 'center'}); y+=8;
                         
                         dataFilter = allAdminTableData.filter(r => String(r.ID_Layanan) === String(idLay) && r.Tipe_Evaluasi === tipeLay);
@@ -723,34 +819,25 @@
                         let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
                         let kategori = getKetSkor(avgSkor);
 
-                        if(tipeLay === "Proses") {
-                            if(avgSkor >= 4.2) { teksAnalisis = "jalannya layanan berlangsung sangat interaktif, alokasi waktu terkelola dengan presisi, serta metode dan media yang digunakan oleh Guru BK terbukti sangat efektif dalam membangun antusiasme responden."; teksTindakLanjut = "mempertahankan kualitas strategi dan media layanan yang digunakan saat ini, serta mendokumentasikan praktik baik ini untuk diimbaskan pada materi lainnya."; }
-                            else if(avgSkor >= 3.4) { teksAnalisis = "tahapan pemberian layanan telah berjalan sesuai dengan Rencana Pelaksanaan Layanan (RPL) dan responden menunjukkan respon yang baik, meskipun dinamika interaksi masih dapat dimaksimalkan."; teksTindakLanjut = "melakukan penyesuaian ringan pada metode penyampaian guna meningkatkan keterlibatan aktif responden pada sesi berikutnya."; }
-                            else { teksAnalisis = "adanya kendala teknis maupun non-teknis selama proses pelaksanaan, yang mungkin bersumber dari kurangnya kesesuaian metode dengan karakteristik responden."; teksTindakLanjut = "meninjau dan merevisi Rencana Pelaksanaan Layanan (RPL) BK secara komprehensif, serta merencanakan pendekatan alternatif."; }
-                            judulAnalisisTabel = "A. Hasil Analisis Pelaksanaan (Proses)";
-                        } else {
-                            if(avgSkor >= 4.2) { teksAnalisis = "dampak positif yang sangat signifikan terhadap pemahaman, perasaan, dan kesiapan tindakan dari peserta didik."; teksTindakLanjut = "mempertahankan strategi pengentasan yang digunakan dan merencanakan pengembangan materi lanjutan yang lebih aplikatif."; }
-                            else if(avgSkor >= 3.4) { teksAnalisis = "dampak yang cukup baik bagi peserta didik, namun masih terdapat ruang untuk penguatan materi agar pemahaman lebih mendalam."; teksTindakLanjut = "melakukan pemantauan berkala dan mengoptimalkan pendekatan personal jika diperlukan."; }
-                            else { teksAnalisis = "dampak yang belum optimal dalam mencapai tujuan layanan yang diharapkan."; teksTindakLanjut = "melakukan need assessment ulang, melakukan evaluasi komprehensif, dan menjadwalkan layanan konseling lanjutan."; }
-                            judulAnalisisTabel = "A. Hasil Analisis Dampak (Hasil)";
-                        }
+                        teksAnalisis = document.getElementById('inputCatatanAnalisis').value.trim() || "-";
+                        teksTindakLanjut = document.getElementById('inputCatatanTindakLanjut').value.trim() || "-";
 
-                        let paragraf = `Berdasarkan data yang dihimpun dari ${dataFilter.length} responden, pelaksanaan layanan ${namaLay} memperoleh skor rata-rata ${avgSkor} (${kategori}). Hal ini menunjukkan bahwa ${teksAnalisis} Sebagai tindak lanjut, Guru BK perlu ${teksTindakLanjut}`;
+                        try {
+                            fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "simpanCatatan", idLayanan: idLay, tipeEvaluasi: tipeLay, teksAnalisis: teksAnalisis, teksTindakLanjut: teksTindakLanjut }) });
+                            let idx = dataSemuaCatatan.findIndex(c => String(c.ID_Layanan) === String(idLay) && c.Tipe_Evaluasi === tipeLay);
+                            if(idx !== -1) { dataSemuaCatatan[idx].Teks_Analisis = teksAnalisis; dataSemuaCatatan[idx].Teks_Tindak_Lanjut = teksTindakLanjut; } 
+                            else { dataSemuaCatatan.push({ID_Layanan: idLay, Tipe_Evaluasi: tipeLay, Teks_Analisis: teksAnalisis, Teks_Tindak_Lanjut: teksTindakLanjut}); }
+                        } catch (err) {}
+
+                        let judulAnalisis = tipeLay === "Proses" ? "A. Hasil Analisis Pelaksanaan (Proses)" : "A. Hasil Analisis Dampak (Hasil)";
+                        let paragraf = `Berdasarkan data dari ${dataFilter.length} responden, pelaksanaan layanan ${namaLay} memperoleh rata-rata skor ${avgSkor} (${kategori}).\n\nCatatan Analisis Guru BK:\n${teksAnalisis}`;
                         
                         doc.autoTable({
-                            startY: y,
-                            head: [[judulAnalisisTabel]],
-                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
-                            theme: 'grid',
-                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
-                            margin: { left: 15, right: 15 }
+                            startY: y, head: [[judulAnalisis]], body: [[ { content: paragraf, styles: { halign: 'left' } } ]],
+                            theme: 'grid', styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' }, margin: { left: 15, right: 15 }
                         });
                         y = doc.lastAutoTable.finalY + 8;
-
-                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
-                                    "Rumus Penghitungan: Nilai Rata-rata Layanan = Jumlah Rata-rata Responden ÷ Total Responden.\n" +
-                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
                     }
                     else if (jenis === 'user') {
                         let namaUser = document.getElementById('printSelectUser').value;
@@ -760,46 +847,58 @@
                         doc.setFont("times", "bold"); doc.setFontSize(12);
                         doc.text(judul, 105, y, {align: 'center'}); y+=8;
 
-                        // Rapi dalam Kotak
+                        dataFilter = allAdminTableData.filter(r => r.Nama_Evaluator === namaUser);
+                        let role = dataFilter.length > 0 ? dataFilter[0].Role : "Umum";
+
+                        // --- A. IDENTITAS RESPONDEN ---
+                        let infoBody = [];
+                        infoBody.push([{ content: "A. Data Identitas Responden", colSpan: 2, styles: { halign: 'left', fontStyle: 'bold', fillColor: [230,230,230] } }]);
+                        
+                        if(role === 'Siswa') {
+                            infoBody.push(["Nama Siswa", idArr[0] || "-"]); infoBody.push(["Jenis Kelamin", idArr[1] || "-"]); infoBody.push(["Kelas", idArr[2]?.replace('Kelas ', '') || "-"]);
+                        } else if(role === 'Guru') {
+                            infoBody.push(["Nama Guru", idArr[0] || "-"]); infoBody.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-"]); infoBody.push(["Mata Pelajaran", idArr[2]?.replace('Mapel: ', '') || "-"]);
+                        } else if(role === 'Orang Tua') {
+                            infoBody.push(["Nama Orang Tua", idArr[0]?.replace('(Orang Tua)', '').trim() || "-"]); infoBody.push(["Wali Dari Siswa", idArr[1]?.replace('Anak: ', '') || "-"]);
+                        } else if(role === 'Kepala Sekolah') {
+                            infoBody.push(["Nama Kepala Sekolah", idArr[0] || "-"]); infoBody.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-"]);
+                        } else if(role === 'Pengawas') {
+                            infoBody.push(["Nama Pengawas", idArr[0] || "-"]); infoBody.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-"]); infoBody.push(["Asal Instansi", idArr[2]?.replace('Instansi: ', '') || "-"]);
+                        } else {
+                            infoBody.push(["Nama Lengkap", idArr[0] || "-"]); infoBody.push(["Keterangan Tambahan", idArr.slice(1).join(' | ') || "-"]);
+                        }
+
                         doc.autoTable({
-                            startY: y,
-                            body: [
-                                [{ content: "DATA IDENTITAS RESPONDEN", colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230,230,230] } }],
-                                ["Nama Lengkap", (idArr[0] || "-")], // Titik dua (:) dihapus
-                                ["Informasi Tambahan", (idArr.slice(1).join(' | ') || "-")] // Titik dua (:) dihapus
-                            ],
-                            theme: 'grid',
+                            startY: y, body: infoBody, theme: 'grid',
                             styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                            columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
-                            margin: { left: 15, right: 15 }
+                            columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } }, margin: { left: 15, right: 15 }
                         });
                         y = doc.lastAutoTable.finalY + 8;
 
-                        dataFilter = allAdminTableData.filter(r => r.Nama_Evaluator === namaUser);
+                        // --- AMBIL INPUTAN KUSTOM DARI MODAL ---
+                        teksAnalisis = document.getElementById('inputCatatanAnalisis').value.trim() || "-";
+                        teksTindakLanjut = document.getElementById('inputCatatanTindakLanjut').value.trim() || "-";
+
+                        try {
+                            fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: "simpanCatatan", idLayanan: namaUser, tipeEvaluasi: "Individu", teksAnalisis: teksAnalisis, teksTindakLanjut: teksTindakLanjut }) });
+                            let idx = dataSemuaCatatan.findIndex(c => String(c.ID_Layanan) === String(namaUser) && c.Tipe_Evaluasi === "Individu");
+                            if(idx !== -1) { dataSemuaCatatan[idx].Teks_Analisis = teksAnalisis; dataSemuaCatatan[idx].Teks_Tindak_Lanjut = teksTindakLanjut; } 
+                            else { dataSemuaCatatan.push({ID_Layanan: namaUser, Tipe_Evaluasi: "Individu", Teks_Analisis: teksAnalisis, Teks_Tindak_Lanjut: teksTindakLanjut}); }
+                        } catch (err) {}
+
+                        // --- B. ANALISIS GURU BK ---
                         let totalSkorAll = dataFilter.reduce((a,b)=>a+(parseInt(b.Total_Skor)/10), 0);
                         let avgSkor = dataFilter.length === 0 ? 0 : (totalSkorAll / dataFilter.length).toFixed(2);
                         let kategori = getKetSkor(avgSkor);
 
-                        if(avgSkor >= 4.2) { teksAnalisis = "respon yang sangat positif terhadap layanan bimbingan dan konseling yang diberikan."; teksTindakLanjut = "terus mempertahankan kualitas komunikasi yang terjalin."; }
-                        else if(avgSkor >= 3.4) { teksAnalisis = "respon yang cukup baik terhadap pelaksanaan layanan, dengan beberapa catatan penyesuaian."; teksTindakLanjut = "memantau perkembangan responden secara berkala."; }
-                        else { teksAnalisis = "kebutuhan akan penyesuaian cara pendekatan dari Guru BK."; teksTindakLanjut = "melakukan sesi diskusi mendalam untuk mengetahui hambatan spesifik yang dirasakan."; }
-
-                        let paragraf = `Dokumen ini merupakan hasil rangkuman evaluasi yang diisi oleh individu terkait. Dari hasil isian kuesioner pada berbagai sesi, diperoleh rata-rata skor keseluruhan ${avgSkor} (${kategori}). Analisis menunjukkan bahwa responden memberikan ${teksAnalisis} Tindak lanjut yang disarankan adalah ${teksTindakLanjut}`;
+                        let paragraf = `Dokumen ini merupakan hasil rangkuman evaluasi yang diisi oleh individu terkait dari total ${dataFilter.length} sesi layanan yang telah dievaluasi. Diperoleh rata-rata skor keseluruhan ${avgSkor} (${kategori}).\n\nCatatan Analisis Guru BK:\n${teksAnalisis}`;
 
                         doc.autoTable({
-                            startY: y,
-                            head: [["A. Analisis Isian Responden"]],
-                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
-                            theme: 'grid',
-                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
-                            margin: { left: 15, right: 15 }
+                            startY: y, head: [["B. Hasil Analisis Isian Responden"]], body: [[ { content: paragraf, styles: { halign: 'left' } } ]],
+                            theme: 'grid', styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' }, margin: { left: 15, right: 15 }
                         });
                         y = doc.lastAutoTable.finalY + 8;
-
-                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
-                                    "Rumus Penghitungan: Nilai Rata-rata Individu = Total Skor Isian ÷ Jumlah Butir Pernyataan.\n" +
-                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
                     }
                     else if (jenis === 'global') {
                         judul = "REKAPITULASI HASIL EVALUASI PROSES DAN EVALUASI HASIL BK";
@@ -816,19 +915,13 @@
                         let paragraf = `Laporan ini merangkum seluruh kegiatan Bimbingan dan Konseling di ${namaSek}. Secara akumulatif, aspek Evaluasi Proses dari seluruh layanan mendapatkan skor rata-rata ${avgProses} (${getKetSkor(avgProses)}), menunjukkan bahwa tahapan persiapan hingga pelaksanaan layanan BK telah berjalan dengan kapabilitas manajerial yang terukur. Sementara itu, aspek Evaluasi Hasil mencatatkan skor rata-rata ${avgHasil} (${getKetSkor(avgHasil)}), yang membuktikan bahwa program BK secara keseluruhan memberikan dampak yang konstruktif bagi perkembangan siswa. Guru BK diharapkan menyusun program semester berikutnya berdasarkan landasan data evaluasi ini.`;
                         
                         doc.autoTable({
-                            startY: y,
-                            head: [["A. Analisis Komprehensif Bimbingan dan Konseling"]],
-                            body: [[ { content: paragraf, styles: { halign: 'justify' } } ]],
-                            theme: 'grid',
-                            styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
-                            margin: { left: 15, right: 15 }
+                            startY: y, head: [["A. Analisis Komprehensif Bimbingan dan Konseling"]], body: [[ { content: paragraf, styles: { halign: 'left' } } ]],
+                            theme: 'grid', styles: { font: 'times', fontSize: 11, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' }, margin: { left: 15, right: 15 }
                         });
                         y = doc.lastAutoTable.finalY + 8;
 
-                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\n" +
-                                    "Rumus Penghitungan: Nilai Rata-rata Global = Total Rata-rata Semua Layanan ÷ Total Responden Evaluasi.\n" +
-                                    "Kriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
+                        rumusTeks = "Pendekatan Penilaian: Instrumen menggunakan Skala Likert (1 - 5).\nRumus Penghitungan: Nilai Rata-rata Global = Total Rata-rata Semua Layanan ÷ Total Responden Evaluasi.\nKriteria Predikat: (4.20 - 5.00 = Sangat Baik | 3.40 - 4.19 = Baik | < 3.40 = Perlu Peningkatan)";
                     }
 
                     if(dataFilter.length === 0) {
@@ -836,19 +929,20 @@
                         return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Data Kosong', text:'Tidak ada data yang cocok untuk dicetak.'});
                     }
 
-                    // --- 3. KOTAK RUMUS SKORING (BAGIAN B) ---
+                    // --- 3. KOTAK DINAMIS (BAGIAN SELANJUTNYA: TINDAK LANJUT / RUMUS) ---
+                    // Dinamis urutan huruf: Jika Laporan Responden jadi huruf C, lainnya tetap B
+                    let hurufB = (jenis === 'user') ? "C" : "B";
+                    let judulB = (jenis === 'layanan' || jenis === 'user') ? `${hurufB}. Rencana Tindak Lanjut` : `${hurufB}. Rumus dan Kriteria Skoring`;
+                    let kontenB = (jenis === 'layanan' || jenis === 'user') ? teksTindakLanjut : rumusTeks;
+
                     doc.autoTable({
-                        startY: y,
-                        head: [["B. Rumus dan Kriteria Skoring"]],
-                        body: [[ { content: rumusTeks, styles: { halign: 'left' } } ]],
-                        theme: 'grid',
-                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                        headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
-                        margin: { left: 15, right: 15 }
+                        startY: y, head: [[judulB]], body: [[ { content: kontenB, styles: { halign: 'left' } } ]],
+                        theme: 'grid', styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                        headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' }, margin: { left: 15, right: 15 }
                     });
                     y = doc.lastAutoTable.finalY + 8;
 
-                    // --- 4. MEMBANGUN TABEL RINCIAN (BAGIAN C - Rata Tengah Kecuali Nama) ---
+                    // --- 4. MEMBANGUN TABEL RINCIAN (BAGIAN TERAKHIR) ---
                     let tableHead = [];
                     let tableBody = [];
 
@@ -857,35 +951,36 @@
                         tableBody = dataFilter.map((r, i) => [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), r.Nama_Evaluator.split('|')[0], r.Role, r.Total_Skor ]);
                     } 
                     else if(jenis === 'user') {
-                        tableHead = [['No', 'Waktu Pengisian', 'Layanan BK', 'Tipe Evaluasi', 'Total Skor']];
+                        tableHead = [['No', 'Waktu Pengisian', 'Layanan BK', 'Nama Guru BK', 'Tipe Evaluasi', 'Total Skor']];
                         tableBody = dataFilter.map((r, i) => {
                             let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(r.ID_Layanan))?.Nama_Layanan || r.ID_Layanan;
-                            return [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), namaLay, r.Tipe_Evaluasi, r.Total_Skor ];
+                            let namaGuruTarget = r.Target_Guru_BK || "-";
+                            return [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), namaLay, namaGuruTarget, r.Tipe_Evaluasi, r.Total_Skor ];
                         });
                     }
                     else if(jenis === 'global') {
                         tableHead = [['No', 'Waktu Pengisian', 'Nama Responden', 'Layanan BK', 'Tipe', 'Skor']];
                         tableBody = dataFilter.map((r, i) => {
                             let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(r.ID_Layanan))?.Nama_Layanan || r.ID_Layanan;
-                            // Mengambil nama full tanpa dipotong substring dan menggabungkan dengan peran
                             let namaFullDenganPeran = `${r.Nama_Evaluator.split('|')[0].trim()} (${r.Role})`;
                             return [ i+1, new Date(r.Timestamp).toLocaleDateString('id-ID'), namaFullDenganPeran, namaLay, r.Tipe_Evaluasi, r.Total_Skor ];
                         });
                     }
 
-                    // Tambahkan Teks Judul C
-                    doc.setFont("times", "bold"); doc.setFontSize(11);
-                    doc.text("C. Tabel Rincian Data Evaluasi", 15, y); 
+                    // Dinamis urutan huruf tabel: Jika Laporan Responden jadi huruf D, lainnya tetap C
+                    let hurufC = (jenis === 'user') ? "D" : "C";
+                    let headerC = [{ content: `${hurufC}. Tabel Rincian Data Evaluasi`, colSpan: tableHead[0].length, styles: { halign: 'left', fillColor: [230, 230, 230], fontStyle: 'bold' } }];
                     
                     doc.autoTable({
-                        startY: y + 3,
-                        head: tableHead,
-                        body: tableBody,
-                        theme: 'grid',
-                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2, halign: 'center' }, // Default Rata Tengah
+                        startY: y, head: [headerC], theme: 'grid',
+                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 }, margin: { left: 15, right: 15 }
+                    });
+
+                    doc.autoTable({
+                        startY: doc.lastAutoTable.finalY, head: [tableHead[0]], body: tableBody, theme: 'grid',
+                        styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2, halign: 'center' },
                         headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' },
-                        columnStyles: { 2: { halign: 'center' } }, // Index 2 (Nama/Layanan) di set Rata Kiri
-                        margin: { left: 15, right: 15 }
+                        columnStyles: { 2: { halign: 'left' } }, margin: { left: 15, right: 15 }
                     });
 
                     // --- 5. TANDA TANGAN (Hanya Nama Bold) ---
@@ -956,11 +1051,24 @@
 
         async function fetchDaftarLayananForm() {
             let select = document.getElementById('layananSelect');
+            let selectGuru = document.getElementById('targetGuruSelect');
             try {
                 let res = await fetch(`${GAS_URL}?action=getLayanan`);
                 let data = await res.json();
                 select.innerHTML = '<option value="">-- Pilih Layanan --</option>';
                 data.forEach(l => { select.innerHTML += `<option value="${l.ID_Layanan}">${l.Nama_Layanan}</option>`; });
+
+                // Tarik daftar Guru BK dari sheet Admin
+                let resGuru = await fetch(`${GAS_URL}?action=getUsers&role=Admin`);
+                let dataGuru = await resGuru.json();
+                selectGuru.innerHTML = '<option value="">-- Pilih Guru BK --</option>';
+                dataGuru.forEach(g => { 
+                    let usr = String(g.Username).toLowerCase().trim();
+                    // Sembunyikan akun superadmin agar tidak bisa dipilih oleh responden
+                    if(usr !== 'superadmin') {
+                        selectGuru.innerHTML += `<option value="${g["Nama Guru BK"]}">${g["Nama Guru BK"]}</option>`; 
+                    }
+                });
             } catch (error) { console.error(error); }
         }
 
@@ -984,18 +1092,26 @@
             } catch (err) { Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Error', text:'Gagal memuat data master.'}); }
 
             if (role === 'Siswa') {
-                let options = globalDataSiswa.map((s, i) => `<option value="${i}">${s["Nama Siswa"]}</option>`).join('');
+                let options = globalDataSiswa.map(s => `<option value="${s["Nama Siswa"]}"></option>`).join('');
                 area.innerHTML = `
                     <div class="grid md:grid-cols-2 gap-5">
-                        <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda</label><select id="inputNamaSiswa" onchange="updateDetailSiswa()" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anda --</option>${options}</select></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda</label>
+                            <input type="text" id="inputNamaSiswa" list="dataSiswa" oninput="updateDetailSiswa()" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama untuk mencari...">
+                            <datalist id="dataSiswa">${options}</datalist>
+                        </div>
                         <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Jenis Kelamin</label><input type="text" id="detailKelamin" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
                         <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Kelas</label><input type="text" id="detailKelas" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
                     </div>`;
             } else if (role === 'Guru') {
-                let options = globalDataGuru.map((g, i) => `<option value="${i}">${g["Nama Guru"]}</option>`).join('');
+                let options = globalDataGuru.map(g => `<option value="${g["Nama Guru"]}"></option>`).join('');
                 area.innerHTML = `
                     <div class="grid md:grid-cols-2 gap-5">
-                        <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Guru</label><select id="inputNamaGuru" onchange="updateDetailGuru()" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anda --</option>${options}</select></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Guru</label>
+                            <input type="text" id="inputNamaGuru" list="dataGuru" oninput="updateDetailGuru()" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama untuk mencari...">
+                            <datalist id="dataGuru">${options}</datalist>
+                        </div>
                         <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">NIP</label><input type="text" id="detailNIP" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
                         <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Mata Pelajaran</label><input type="text" id="detailMapel" class="w-full px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 font-bold border border-slate-700 outline-none" readonly placeholder="Otomatis"></div>
                     </div>`;
@@ -1004,14 +1120,47 @@
             } else if (role === 'Pengawas') {
                 area.innerHTML = `<div class="grid md:grid-cols-2 gap-5"><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Lengkap</label><input type="text" id="inputNamaPengawas" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama pengawas..."></div><div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">NIP</label><input type="text" id="inputNIPPengawas" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik NIP..."></div><div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Instansi</label><input type="text" id="inputInstansi" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Asal Instansi..."></div></div>`;
             } else if (role === 'Orang Tua') {
-                let options = globalDataSiswa.map((s, i) => `<option value="${i}">${s["Nama Siswa"]} (Kelas ${s["Kelas"]})</option>`).join('');
-                area.innerHTML = `<div class="grid md:grid-cols-2 gap-5"><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda (Orang Tua)</label><input type="text" id="inputNamaOrtu" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama Anda..."></div><div class="md:col-span-2"><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anak Anda</label><select id="inputNamaAnak" class="w-full px-4 py-3 rounded-xl dark-input cursor-pointer"><option value="">-- Cari Nama Anak Anda --</option>${options}</select></div></div>`;
+                // Tampilan: Nama Siswa (Kelas)
+                let options = globalDataSiswa.map(s => `<option value="${s["Nama Siswa"]} (${s["Kelas"]})"></option>`).join('');
+                area.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anda (Orang Tua)</label>
+                            <input type="text" id="inputNamaOrtu" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama Anda...">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Nama Anak Anda</label>
+                            <input type="text" id="inputNamaAnak" list="dataAnak" class="w-full px-4 py-3 rounded-xl dark-input" placeholder="Ketik nama anak untuk mencari...">
+                            <datalist id="dataAnak">${options}</datalist>
+                        </div>
+                    </div>`;
             }
         }
 
-        function updateDetailSiswa() { let idx = document.getElementById('inputNamaSiswa').value; if(idx !== "") { document.getElementById('detailKelamin').value = globalDataSiswa[idx]["Kelamin"]; document.getElementById('detailKelas').value = globalDataSiswa[idx]["Kelas"]; } else { document.getElementById('detailKelamin').value = ""; document.getElementById('detailKelas').value = ""; } }
-        function updateDetailGuru() { let idx = document.getElementById('inputNamaGuru').value; if(idx !== "") { document.getElementById('detailNIP').value = globalDataGuru[idx]["NIP"] || "-"; document.getElementById('detailMapel').value = globalDataGuru[idx]["Mapel"] || "-"; } else { document.getElementById('detailNIP').value = ""; document.getElementById('detailMapel').value = ""; } }
+        function updateDetailSiswa() { 
+            let val = document.getElementById('inputNamaSiswa').value; 
+            let student = globalDataSiswa.find(s => s["Nama Siswa"] === val);
+            if(student) { 
+                document.getElementById('detailKelamin').value = student["Kelamin"]; 
+                document.getElementById('detailKelas').value = student["Kelas"]; 
+            } else { 
+                document.getElementById('detailKelamin').value = ""; 
+                document.getElementById('detailKelas').value = ""; 
+            } 
+        }
 
+        function updateDetailGuru() { 
+            let val = document.getElementById('inputNamaGuru').value; 
+            let guru = globalDataGuru.find(g => g["Nama Guru"] === val);
+            if(guru) { 
+                document.getElementById('detailNIP').value = guru["NIP"] || "-"; 
+                document.getElementById('detailMapel').value = guru["Mapel"] || "-"; 
+            } else { 
+                document.getElementById('detailNIP').value = ""; 
+                document.getElementById('detailMapel').value = ""; 
+            } 
+        }
+		
         async function fetchPernyataan() {
             let idLayanan = document.getElementById('layananSelect').value;
             let tipe = document.getElementById('tipeSelect').value;
@@ -1042,14 +1191,52 @@
             let finalNama = "";
             if (!role) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Peran belum dipilih!'});
             
-            if (role === "Siswa") { let idx = document.getElementById('inputNamaSiswa')?.value; if(!idx) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Siswa wajib dipilih!'}); finalNama = `${globalDataSiswa[idx]["Nama Siswa"]} | ${globalDataSiswa[idx]["Kelamin"]} | Kelas ${globalDataSiswa[idx]["Kelas"]}`; } 
-            else if (role === "Guru") { let idx = document.getElementById('inputNamaGuru')?.value; if(!idx) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Guru wajib dipilih!'}); finalNama = `${globalDataGuru[idx]["Nama Guru"]} | NIP: ${globalDataGuru[idx]["NIP"]} | Mapel: ${globalDataGuru[idx]["Mapel"]}`; } 
-            else if (role === "Kepala Sekolah") { let nama = document.getElementById('inputNamaKepsek')?.value.trim(); let nip = document.getElementById('inputNIPKepsek')?.value.trim(); if(!nama || !nip) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama dan NIP wajib diisi!'}); finalNama = `${nama} | NIP: ${nip}`; } 
-            else if (role === "Pengawas") { let nama = document.getElementById('inputNamaPengawas')?.value.trim(); let nip = document.getElementById('inputNIPPengawas')?.value.trim(); let inst = document.getElementById('inputInstansi')?.value.trim(); if(!nama || !nip || !inst) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Semua data pengawas wajib diisi!'}); finalNama = `${nama} | NIP: ${nip} | Instansi: ${inst}`; } 
-            else if (role === "Orang Tua") { let namaOrtu = document.getElementById('inputNamaOrtu')?.value.trim(); let idxAnak = document.getElementById('inputNamaAnak')?.value; if(!namaOrtu || !idxAnak) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Anda dan Anak wajib diisi!'}); finalNama = `${namaOrtu} (Orang Tua) | Anak: ${globalDataSiswa[idxAnak]["Nama Siswa"]} (Kelas ${globalDataSiswa[idxAnak]["Kelas"]})`; }
-
+            if (role === "Siswa") { 
+                let val = document.getElementById('inputNamaSiswa')?.value; 
+                let student = globalDataSiswa.find(s => s["Nama Siswa"] === val);
+                if(!student) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Siswa tidak ditemukan di database!'}); 
+                finalNama = `${student["Nama Siswa"]} | ${student["Kelamin"]} | Kelas ${student["Kelas"]}`; 
+            } 
+            else if (role === "Guru") { 
+                let val = document.getElementById('inputNamaGuru')?.value; 
+                let guru = globalDataGuru.find(g => g["Nama Guru"] === val);
+                if(!guru) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama Guru tidak ditemukan di database!'}); 
+                finalNama = `${guru["Nama Guru"]} | NIP: ${guru["NIP"]} | Mapel: ${guru["Mapel"]}`; 
+            } 
+            else if (role === "Kepala Sekolah") { 
+                let nama = document.getElementById('inputNamaKepsek')?.value.trim(); 
+                let nip = document.getElementById('inputNIPKepsek')?.value.trim(); 
+                if(!nama || !nip) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Nama dan NIP wajib diisi!'}); 
+                finalNama = `${nama} | NIP: ${nip}`; 
+            } 
+            else if (role === "Pengawas") { 
+                let nama = document.getElementById('inputNamaPengawas')?.value.trim(); 
+                let nip = document.getElementById('inputNIPPengawas')?.value.trim(); 
+                let inst = document.getElementById('inputInstansi')?.value.trim(); 
+                if(!nama || !nip || !inst) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Semua data pengawas wajib diisi!'}); 
+                finalNama = `${nama} | NIP: ${nip} | Instansi: ${inst}`; 
+            } 
+            else if (role === "Orang Tua") { 
+                let namaOrtu = document.getElementById('inputNamaOrtu')?.value.trim(); 
+                let valAnak = document.getElementById('inputNamaAnak')?.value.trim(); 
+                
+                // Mengambil hanya nama siswa sebelum tanda kurung "(Kelas ...)"
+                let namaAnakInput = valAnak.split('(')[0].trim();
+                
+                // Mencari siswa berdasarkan nama yang bersih
+                let student = globalDataSiswa.find(s => s["Nama Siswa"].trim() === namaAnakInput);
+                
+                if(!namaOrtu || !student) return Swal.fire({
+                    background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', 
+                    text:'Nama Anda wajib diisi dan pilih nama anak dari daftar yang muncul!'
+                }); 
+                
+                finalNama = `${namaOrtu} (Orang Tua) | Anak: ${student["Nama Siswa"]} (${student["Kelas"]})`; 
+            }
+			
             let idLay = document.getElementById('layananSelect').value;
             let tipe = document.getElementById('tipeSelect').value;
+            let targetGuru = document.getElementById('targetGuruSelect').value; // Ambil nilai Guru BK
             let saran = document.getElementById('inputSaran').value.trim();
 
             if(!idLay || !tipe) return Swal.fire({background: '#1e293b', color: '#fff', icon:'warning', title:'Perhatian', text:'Fokus Penilaian wajib dipilih!'});
@@ -1061,7 +1248,7 @@
                 let val = parseInt(r.value); skor.push(val); total += val;
             }
 
-            let payload = { token: currentToken, role: role, namaEvaluator: finalNama, tipeEvaluasi: tipe, idLayanan: idLay, skor: skor, totalSkor: total, saran: saran };
+            let payload = { token: currentToken, role: role, namaEvaluator: finalNama, tipeEvaluasi: tipe, idLayanan: idLay, skor: skor, totalSkor: total, saran: saran, targetGuru: targetGuru };
 
             let confirm = await Swal.fire({ background: '#1e293b', color: '#f8fafc', title: 'Konfirmasi Pengiriman', text: 'Apakah Anda yakin data evaluasi yang diisi sudah benar dan sesuai?', icon: 'question', showCancelButton: true, confirmButtonColor: '#fbbf24', cancelButtonColor: '#475569', confirmButtonText: 'Ya, Kirim Data', cancelButtonText: 'Periksa Lagi' });
             if(!confirm.isConfirmed) return;
@@ -1085,13 +1272,62 @@
             let rowData = allAdminTableData.find(r => String(r.Timestamp) === String(timestamp));
             if(!rowData) return Swal.fire('Error', 'Data tidak ditemukan', 'error');
 
+            // 1. Cek riwayat catatan di database berdasarkan Timestamp sesi ini
+            let catatan = dataSemuaCatatan.find(c => String(c.ID_Layanan) === String(timestamp) && c.Tipe_Evaluasi === "Rapor");
+            let defAnalisis = catatan ? (catatan.Teks_Analisis || "") : "";
+            let defTindak = catatan ? (catatan.Teks_Tindak_Lanjut || "") : "";
+
+            // 2. Munculkan Popup Input Interaktif dengan SweetAlert
+            const { value: formValues, isConfirmed } = await Swal.fire({
+                background: '#1e293b',
+                color: '#fff',
+                title: '<span class="text-amber-400 text-lg">Catatan Rapor Sesi</span>',
+                html: `
+                    <div class="text-left mb-4">
+                        <label class="text-xs font-bold text-slate-400 uppercase">📝 Analisis Spesifik Guru BK</label>
+                        <textarea id="swalAnalisis" rows="3" class="w-full px-3 py-2 mt-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm" placeholder="Ketik analisis khusus untuk sesi individu ini...">${defAnalisis}</textarea>
+                    </div>
+                    <div class="text-left">
+                        <label class="text-xs font-bold text-slate-400 uppercase">🚀 Rencana Tindak Lanjut</label>
+                        <textarea id="swalTindak" rows="3" class="w-full px-3 py-2 mt-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm" placeholder="Ketik rencana tindak lanjut...">${defTindak}</textarea>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan & Cetak PDF',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#fbbf24',
+                cancelButtonColor: '#ef4444',
+                preConfirm: () => {
+                    return {
+                        analisis: document.getElementById('swalAnalisis').value.trim() || "-",
+                        tindak: document.getElementById('swalTindak').value.trim() || "-"
+                    }
+                }
+            });
+
+            if (!isConfirmed) return; // Batal jika tombol cancel ditekan
+
             showLoader("Menarik Pertanyaan & Menyusun Rapor...");
             try {
-                // 1. Tarik Teks Pertanyaan dari Database
+                let teksAnalisis = formValues.analisis;
+                let teksTindakLanjut = formValues.tindak;
+
+                // --- SIMPAN TEKS KE BACKEND ---
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "simpanCatatan", idLayanan: timestamp, tipeEvaluasi: "Rapor", teksAnalisis: teksAnalisis, teksTindakLanjut: teksTindakLanjut })
+                }).catch(e => console.error(e));
+
+                // Update array lokal agar tidak perlu refresh
+                let idx = dataSemuaCatatan.findIndex(c => String(c.ID_Layanan) === String(timestamp) && c.Tipe_Evaluasi === "Rapor");
+                if(idx !== -1) { dataSemuaCatatan[idx].Teks_Analisis = teksAnalisis; dataSemuaCatatan[idx].Teks_Tindak_Lanjut = teksTindakLanjut; } 
+                else { dataSemuaCatatan.push({ID_Layanan: timestamp, Tipe_Evaluasi: "Rapor", Teks_Analisis: teksAnalisis, Teks_Tindak_Lanjut: teksTindakLanjut}); }
+
+                // 3. Tarik Teks Pertanyaan
                 let resQ = await fetch(`${GAS_URL}?action=getPernyataan&idLayanan=${rowData.ID_Layanan}&tipe=${rowData.Tipe_Evaluasi}`);
                 let questions = await resQ.json();
 
-                // 2. Persiapan jsPDF
+                // 4. Persiapan jsPDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
                 let y = 15;
@@ -1106,83 +1342,120 @@
                     doc.setFontSize(14);
                     if(globalSekolah["Nama Sekolah"]) { doc.text(globalSekolah["Nama Sekolah"].toUpperCase(), 105, y, {align: 'center'}); y+=6; }
                     
-                    // TAMBAHAN: Teks "BIMBINGAN DAN KONSELING" di bawah Nama Sekolah
                     doc.setFontSize(12);
-                    doc.text("BIMBINGAN DAN KONSELING", 105, y, {align: 'center'}); 
-                    y+=5; // Menggeser baris berikutnya ke bawah agar tidak bertumpuk
+                    doc.text("BIMBINGAN DAN KONSELING", 105, y, {align: 'center'}); y+=5;
                     
                     doc.setFontSize(10); doc.setFont("times", "normal");
                     if(globalSekolah.Alamat) { doc.text(globalSekolah.Alamat, 105, y, {align: 'center'}); y+=4; }
                     if(logoKiriBase64) { try { doc.addImage(logoKiriBase64, 'PNG', 15, 10, 24, 24); } catch(e){} }
                     if(logoBase64) { try { doc.addImage(logoBase64, 'PNG', 170, 10, 24, 24); } catch(e){} }
                 }
-                y+=3; doc.setDrawColor(0, 0, 0);
-                doc.setLineWidth(0.8); doc.line(15, y, 195, y);
+                y+=3; doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.8); doc.line(15, y, 195, y);
                 y+=1.5; doc.setLineWidth(0.3); doc.line(15, y, 195, y); y+=8;
 
-                // --- JUDUL RAPOR ---
                 doc.setFont("times", "bold"); doc.setFontSize(12);
                 doc.text("LAPORAN ANGKET EVALUASI LAYANAN BK (RESPONDEN)", 105, y, {align: 'center'}); y+=6;
 
-                // --- A. IDENTITAS (VERSI KOTAK RAPI TANPA TITIK DUA) ---
-                let tglIsi = new Date(rowData.Timestamp).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                // --- A. IDENTITAS & DETAIL SESI ---
+                let tglIsi = new Date(rowData.Timestamp).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
                 let namaLay = dataLayananLengkap.find(l => String(l.ID_Layanan) === String(rowData.ID_Layanan))?.Nama_Layanan || rowData.ID_Layanan;
-                let idArr = rowData.Nama_Evaluator.split('|').map(s => s.trim());
+                let targetGuru = rowData.Target_Guru_BK || "-";
                 
+                let role = rowData.Role;
+                let idArr = rowData.Nama_Evaluator.split('|').map(s => s.trim());
+                let bodyIdentitas = [];
+                
+                bodyIdentitas.push([{ content: "A. Identitas Responden & Detail Sesi", colSpan: 4, styles: { halign: 'left', fontStyle: 'bold', fillColor: [230, 230, 230] } }]);
+
+                // Logika Pemisah Baris dan Kolom Berdasarkan Peran
+                if(role === 'Siswa') {
+                    bodyIdentitas.push(["Nama Siswa", idArr[0] || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["Kelas / Kelamin", `${idArr[2]?.replace('Kelas ', '') || "-"} / ${idArr[1] || "-"}`, "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Peran Responden", "Siswa", "Nama Guru BK", targetGuru]);
+                } else if(role === 'Guru') {
+                    bodyIdentitas.push(["Nama Guru", idArr[0] || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-", "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Mata Pelajaran", idArr[2]?.replace('Mapel: ', '') || "-", "Nama Guru BK", targetGuru]);
+                } else if(role === 'Orang Tua') {
+                    bodyIdentitas.push(["Nama Orang Tua", idArr[0]?.replace('(Orang Tua)', '').trim() || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["Wali Dari Anak", idArr[1]?.replace('Anak: ', '') || "-", "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Peran Responden", "Orang Tua / Wali", "Nama Guru BK", targetGuru]);
+                } else if(role === 'Kepala Sekolah') {
+                    bodyIdentitas.push(["Nama Kepsek", idArr[0] || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-", "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Peran Responden", "Kepala Sekolah", "Nama Guru BK", targetGuru]);
+                } else if(role === 'Pengawas') {
+                    bodyIdentitas.push(["Nama Pengawas", idArr[0] || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["NIP", idArr[1]?.replace('NIP: ', '') || "-", "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Asal Instansi", idArr[2]?.replace('Instansi: ', '') || "-", "Nama Guru BK", targetGuru]);
+                } else {
+                    bodyIdentitas.push(["Nama Responden", idArr[0] || "-", "Waktu Pengisian", tglIsi]);
+                    bodyIdentitas.push(["Keterangan", idArr.slice(1).join(' | ') || "-", "Layanan BK", `${namaLay} (${rowData.Tipe_Evaluasi})`]);
+                    bodyIdentitas.push(["Peran", role, "Nama Guru BK", targetGuru]);
+                }
+
                 doc.autoTable({
                     startY: y,
-                    body: [
-                        [{ content: "A. IDENTITAS RESPONDEN", colSpan: 4, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
-                        ["Nama Responden", (idArr[0] || "-"), "Waktu Isi", tglIsi],
-                        ["Keterangan", (idArr.slice(1).join(' | ') || rowData.Role), "Layanan", namaLay + " (" + rowData.Tipe_Evaluasi + ")"]
-                    ],
+                    body: bodyIdentitas,
                     theme: 'grid',
                     styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                    columnStyles: { 
-                        0: { fontStyle: 'bold', cellWidth: 32 }, 
-                        2: { fontStyle: 'bold', cellWidth: 22 } 
-                    },
+                    // Set CellWidth agar 4 kolom terbagi proporsional dan tidak berantakan
+                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35 }, 2: { fontStyle: 'bold', cellWidth: 35 } },
                     margin: { left: 15, right: 15 }
                 });
                 y = doc.lastAutoTable.finalY + 5;
 
-                // --- B. ANALISIS SINGKAT & RUMUS ---
+                // --- B. ANALISIS GURU BK ---
                 let totalSkorAll = parseInt(rowData.Total_Skor);
-                let avgSkor = (totalSkorAll / 10).toFixed(2); // Asumsi 10 soal
+                let avgSkor = (totalSkorAll / (questions.length || 10)).toFixed(2);
                 let kategori = getKetSkor(avgSkor);
-                let teksAnalisis = "";
 
-                if(avgSkor >= 4.2) teksAnalisis = "Sangat Baik. Responden menunjukkan antusiasme dan dampak positif yang sangat signifikan terhadap layanan yang diberikan.";
-                else if(avgSkor >= 3.4) teksAnalisis = "Baik. Responden memberikan respon positif dengan beberapa catatan untuk optimalisasi layanan ke depan.";
-                else teksAnalisis = "Perlu Peningkatan. Terdapat indikasi perlunya penyesuaian pendekatan atau metode layanan untuk responden ini.";
-
-                let teksGabungan = `Nilai Rata-rata: ${avgSkor} (${kategori}).\nAnalisis: ${teksAnalisis}\nKriteria Skoring: 4.20-5.00 (Sangat Baik) | 3.40-4.19 (Baik) | <3.40 (Perlu Peningkatan).`;
+                let paragrafB = `Berdasarkan isian kuesioner pada sesi ini, diperoleh total skor ${totalSkorAll} dengan rata-rata ${avgSkor} (${kategori}).\n\nCatatan Analisis:\n${teksAnalisis}`;
 
                 doc.autoTable({
                     startY: y,
-                    head: [["B. Analisis dan Kriteria Penilaian"]],
-                    body: [[teksGabungan]],
+                    head: [["B. Hasil Analisis Guru BK"]],
+                    body: [[ { content: paragrafB, styles: { halign: 'left' } } ]],
                     theme: 'grid',
                     styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
                     headStyles: { fillColor: [230, 230, 230], fontStyle: 'bold' },
                     margin: { left: 15, right: 15 }
                 });
-                y = doc.lastAutoTable.finalY + 4;
+                y = doc.lastAutoTable.finalY + 5;
 
-                // --- C. TABEL RINCIAN PERTANYAAN ---
-                let tableQA = [];
-                if(questions.length === 0) {
-                    tableQA = [["-", "Teks pertanyaan tidak ditemukan di database", "-"]];
-                } else {
-                    questions.forEach((q, i) => {
-                        let skorPilih = rowData["S" + (i+1)] || "-";
-                        tableQA.push([i+1, q.Pernyataan, skorPilih]);
-                    });
-                }
-                tableQA.push([{ content: "TOTAL SKOR YANG DIPEROLEH", colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, { content: totalSkorAll, styles: { fontStyle: 'bold' } }]);
-
+                // --- C. RENCANA TINDAK LANJUT ---
                 doc.autoTable({
                     startY: y,
+                    head: [["C. Rencana Tindak Lanjut"]],
+                    body: [[ { content: teksTindakLanjut, styles: { halign: 'left' } } ]],
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    headStyles: { fillColor: [230, 230, 230], fontStyle: 'bold' },
+                    margin: { left: 15, right: 15 }
+                });
+                y = doc.lastAutoTable.finalY + 5;
+
+                // --- D. TABEL RINCIAN PERTANYAAN ---
+                let tableQA = [];
+                if(questions.length === 0) { tableQA = [["-", "Teks pertanyaan tidak ditemukan di database", "-"]]; } 
+                else { questions.forEach((q, i) => { tableQA.push([i+1, q.Pernyataan, (rowData["S" + (i+1)] || "-")]); }); }
+                tableQA.push([{ content: "Total Skor Yang Diperoleh", colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, { content: totalSkorAll, styles: { fontStyle: 'bold' } }]);
+
+                // Trik Pagination: Pisahkan baris Judul D menjadi tabel mandiri agar tidak terulang (dobel) saat pindah halaman.
+                let headerD = [{ content: "D. Tabel Rincian Isian Kuesioner", colSpan: 3, styles: { halign: 'left', fillColor: [230, 230, 230], fontStyle: 'bold' } }];
+
+                // Tabel Atap (Hanya Judul)
+                doc.autoTable({
+                    startY: y,
+                    head: [headerD],
+                    theme: 'grid',
+                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
+                    margin: { left: 15, right: 15 }
+                });
+
+                // Tabel Utama (Header Kolom + Body)
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY, // Menempel tepat di bawah tabel judul
                     head: [["No", "Butir Pertanyaan Kuesioner", "Skor"]],
                     body: tableQA,
                     theme: 'grid',
@@ -1191,22 +1464,9 @@
                     columnStyles: { 0: { halign: 'center', cellWidth: 10 }, 1: { halign: 'left' }, 2: { halign: 'center', cellWidth: 20 } },
                     margin: { left: 15, right: 15 }
                 });
-                y = doc.lastAutoTable.finalY + 4;
+                y = doc.lastAutoTable.finalY + 12;
 
-                // --- CATATAN / SARAN ---
-                let saranUser = rowData.Saran ? rowData.Saran : "Tidak ada catatan/saran tambahan dari responden.";
-                doc.autoTable({
-                    startY: y,
-                    head: [["Catatan / Saran Tambahan Responden:"]],
-                    body: [[{ content: saranUser, styles: { fontStyle: 'italic' } }]],
-                    theme: 'grid',
-                    styles: { font: 'times', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2 },
-                    headStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
-                    margin: { left: 15, right: 15 }
-                });
-                y = doc.lastAutoTable.finalY + 15;
-
-                // --- D. TANDA TANGAN ---
+                // --- TANDA TANGAN ---
                 if (y > 250) { doc.addPage(); y = 30; } 
                 let kota = (globalSekolah && globalSekolah["Asal Kota"]) ? globalSekolah["Asal Kota"] : "Kota Anda";
                 let tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
@@ -1223,14 +1483,11 @@
                 doc.setFont("times", "bold"); doc.text(currentAdminName, 120, y + 22);
                 doc.setFont("times", "normal"); doc.text("NIP. " + currentAdminNIP, 120, y + 27);
 
-                // Tampilkan di Tab Baru (Langsung Print / Unduh)
                 const pdfBlob = doc.output('blob');
                 const blobUrl = URL.createObjectURL(pdfBlob);
                 window.open(blobUrl, '_blank');
                 
                 hideLoader();
-                // Kode modal lama dihapus agar tidak muncul mengganggu
-
             } catch(e) {
                 hideLoader(); console.error(e);
                 Swal.fire({background: '#1e293b', color: '#fff', icon:'error', title:'Gagal', text:'Terjadi kesalahan saat menyusun rapor.'});
